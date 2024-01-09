@@ -1,5 +1,5 @@
-#ifndef CAV_INCLUDE_UTILS_UNIONFIND_HPP
-#define CAV_INCLUDE_UTILS_UNIONFIND_HPP
+#ifndef CAV_INCLUDE_UNIONFIND_HPP
+#define CAV_INCLUDE_UNIONFIND_HPP
 
 #include <cassert>
 #include <cstddef>
@@ -79,4 +79,4 @@ private:
 };
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_UNIONFIND_HPP */
+#endif /* CAV_INCLUDE_UNIONFIND_HPP */

@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_ENUM_NAME_HPP
-#define CAV_INCLUDE_UTILS_ENUM_NAME_HPP
+#ifndef CAV_INCLUDE_ENUM_NAME_HPP
+#define CAV_INCLUDE_ENUM_NAME_HPP
 
 #include <bit>
 #include <cstddef>
@@ -76,12 +76,12 @@ namespace detail {
 
         enum TEST2 { A, B };
 
-        static_assert(enum_name_impl<TEST, TEST::A>::name == "A");
-        static_assert(enum_name_impl<TEST, TEST::B>::name == "B");
-        static_assert(enum_name_impl<TEST2, A>::name == "A");
-        static_assert(enum_name_impl<TEST2, B>::name == "B");
-        static_assert(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
-        static_assert(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
+        CAV_PASS(enum_name_impl<TEST, TEST::A>::name == "A");
+        CAV_PASS(enum_name_impl<TEST, TEST::B>::name == "B");
+        CAV_PASS(enum_name_impl<TEST2, A>::name == "A");
+        CAV_PASS(enum_name_impl<TEST2, B>::name == "B");
+        CAV_PASS(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
+        CAV_PASS(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
 
     }  // namespace test
 #endif
@@ -128,13 +128,13 @@ template <auto X>
 
 #ifdef COMP_TESTS
 namespace detail::test {
-    static_assert(enum_name<TEST::A>() == enum_name(TEST::A));
-    static_assert(enum_name<TEST::B>() == enum_name(TEST::B));
-    static_assert(enum_name<A>() == enum_name(A));
-    static_assert(enum_name<B>() == enum_name(B));
+    CAV_PASS(enum_name<TEST::A>() == enum_name(TEST::A));
+    CAV_PASS(enum_name<TEST::B>() == enum_name(TEST::B));
+    CAV_PASS(enum_name<A>() == enum_name(A));
+    CAV_PASS(enum_name<B>() == enum_name(B));
 }  // namespace detail::test
 #endif
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_ENUM_NAME_HPP */
+#endif /* CAV_INCLUDE_ENUM_NAME_HPP */

@@ -13,10 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_CHRONO_HPP
-#define CAV_INCLUDE_UTILS_CHRONO_HPP
+#ifndef CAV_INCLUDE_CAV_CHRONO_HPP
+#define CAV_INCLUDE_CAV_CHRONO_HPP
+
+#ifndef CAV_INCLUDEs_CHRONO_HPP
+#define CAV_INCLUDEs_CHRONO_HPP
 
 #include <chrono>
+
+#include "comptime_test.hpp"
 
 namespace cav {
 
@@ -78,15 +83,18 @@ struct Chrono {
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(Chrono<nsec>::template time_cast<usec>(1) == 1e-3);
-    static_assert(Chrono<usec>::template time_cast<usec>(1) == 1.0);
-    static_assert(Chrono<msec>::template time_cast<usec>(1) == 1000.0);
-    static_assert(Chrono<sec>::template time_cast<usec>(1) == 1000000.0);
-    static_assert(Chrono<sec>::template time_cast<days>(86400) == 1.0);
-    static_assert(Chrono<days>::template time_cast<sec>(1) == 86400.0);
+    CAV_PASS(Chrono<nsec>::template time_cast<usec>(1) == 1e-3);
+    CAV_PASS(Chrono<usec>::template time_cast<usec>(1) == 1.0);
+    CAV_PASS(Chrono<msec>::template time_cast<usec>(1) == 1000.0);
+    CAV_PASS(Chrono<sec>::template time_cast<usec>(1) == 1000000.0);
+    CAV_PASS(Chrono<sec>::template time_cast<days>(86400) == 1.0);
+    CAV_PASS(Chrono<days>::template time_cast<sec>(1) == 86400.0);
 }  // namespace test
 #endif
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_CHRONO_HPP */
+#endif /* CAV_INCLUDE_CHRONO_HPP */
+
+
+#endif /* CAV_INCLUDE_CAV_CHRONO_HPP */

@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_SYNTACTIC_SUGARS_HPP
-#define CAV_INCLUDE_UTILS_SYNTACTIC_SUGARS_HPP
+#ifndef CAV_INCLUDE_SYNTACTIC_SUGARS_HPP
+#define CAV_INCLUDE_SYNTACTIC_SUGARS_HPP
 
 #include <concepts>
 #include <type_traits>
@@ -77,4 +77,4 @@ using if_t = std::conditional_t<Cond, T1, T2>;
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_SYNTACTIC_SUGARS_HPP */
+#endif /* CAV_INCLUDE_SYNTACTIC_SUGARS_HPP */

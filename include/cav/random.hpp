@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_RANDOM_HPP
-#define CAV_INCLUDE_UTILS_RANDOM_HPP
+#ifndef CAV_INCLUDE_RANDOM_HPP
+#define CAV_INCLUDE_RANDOM_HPP
 
 #include <cassert>
 #include <cmath>
@@ -96,4 +96,4 @@ template <typename TpT = ct<0.5>>
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_RANDOM_HPP */
+#endif /* CAV_INCLUDE_RANDOM_HPP */

@@ -12,11 +12,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_INSTANCE_OF_HPP
-#define CAV_INCLUDE_UTILS_INSTANCE_OF_HPP
+#ifndef CAV_INCLUDE_INSTANCE_OF_HPP
+#define CAV_INCLUDE_INSTANCE_OF_HPP
 
 #include <type_traits>
 
+#include "comptime_test.hpp"
 #include "syntactic_sugars.hpp"  // IWYU pragma: keep # no_cvr, if_t
 
 /// @brief Currently, there is no general way to constrain a type to be an instantiation of a given
@@ -92,17 +93,17 @@ namespace test {
     template <auto, typename>
     struct Y {};
 
-    static_assert(inst_of<S<>, S>);
-    static_assert(inst_of<S<int>, S>);
-    static_assert(inst_of<S<int, float>, S>);
-    static_assert(inst_of<S<int, float, double>, S>);
-    static_assert(not_inst_of<X<>, S>);
+    CAV_PASS(inst_of<S<>, S>);
+    CAV_PASS(inst_of<S<int>, S>);
+    CAV_PASS(inst_of<S<int, float>, S>);
+    CAV_PASS(inst_of<S<int, float, double>, S>);
+    CAV_PASS(not_inst_of<X<>, S>);
 
     template <typename T, auto V>
     static constexpr bool templated_context() {
-        static_assert(CAV_INST_OF(S, S<T>));
-        static_assert(CAV_INST_OF(X, X<V>));
-        static_assert(CAV_INST_OF(Y, Y<V, T>));
+        CAV_PASS(CAV_INST_OF(S, S<T>));
+        CAV_PASS(CAV_INST_OF(X, X<V>));
+        CAV_PASS(CAV_INST_OF(Y, Y<V, T>));
         return true;
     };
 
@@ -114,4 +115,4 @@ namespace test {
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_INSTANCE_OF_HPP */
+#endif /* CAV_INCLUDE_INSTANCE_OF_HPP */

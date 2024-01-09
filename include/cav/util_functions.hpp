@@ -16,8 +16,6 @@
 #ifndef CAV_INCLUDE_UTIL_FUNCTIONS_HPP
 #define CAV_INCLUDE_UTIL_FUNCTIONS_HPP
 
-#include <fmt/core.h>
-
 #include <cassert>
 #include <compare>
 #include <concepts>
@@ -28,6 +26,11 @@
 #include "macros.hpp"            //
 #include "mp_utils.hpp"          //
 #include "syntactic_sugars.hpp"  //
+
+#if __has_include(<fmt/core.h>)
+#define CAV_FOUND_FMT
+#include <fmt/core.h>
+#endif
 
 namespace cav {
 
@@ -65,23 +68,23 @@ template <std::integral T1, std::integral T2>
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(check_overflow_sum(1 << 30, 1 << 30));
-    static_assert(!check_overflow_sum(1 << 30, 1 << 29));
-    static_assert(check_overflow_sum(type_max<int>, 1));
-    static_assert(check_overflow_sum(1, type_max<int>));
-    static_assert(!check_overflow_sum(type_min<int>, type_max<int>));
+    CAV_PASS(check_overflow_sum(1 << 30, 1 << 30));
+    CAV_PASS(!check_overflow_sum(1 << 30, 1 << 29));
+    CAV_PASS(check_overflow_sum(type_max<int>, 1));
+    CAV_PASS(check_overflow_sum(1, type_max<int>));
+    CAV_PASS(!check_overflow_sum(type_min<int>, type_max<int>));
 
-    static_assert(check_overflow_dif(type_max<int>, -type_max<int>));
-    static_assert(!check_overflow_dif(0, -type_max<int> + 1));
-    static_assert(check_overflow_dif(type_max<int>, -1));
-    static_assert(check_overflow_dif(-2, type_max<int>));
-    static_assert(!check_overflow_dif(type_min<int>, -type_max<int>));
+    CAV_PASS(check_overflow_dif(type_max<int>, -type_max<int>));
+    CAV_PASS(!check_overflow_dif(0, -type_max<int> + 1));
+    CAV_PASS(check_overflow_dif(type_max<int>, -1));
+    CAV_PASS(check_overflow_dif(-2, type_max<int>));
+    CAV_PASS(!check_overflow_dif(type_min<int>, -type_max<int>));
 
-    static_assert(check_overflow_mul(1 << 16, 1 << 16));
-    static_assert(!check_overflow_mul(1 << 16, (1 << 15) - 1));
-    static_assert(check_overflow_mul(-(type_min<int> / 2), 2));
-    static_assert(check_overflow_mul(2, -(type_min<int> / 2)));
-    static_assert(!check_overflow_mul(-1, 1));
+    CAV_PASS(check_overflow_mul(1 << 16, 1 << 16));
+    CAV_PASS(!check_overflow_mul(1 << 16, (1 << 15) - 1));
+    CAV_PASS(check_overflow_mul(-(type_min<int> / 2), 2));
+    CAV_PASS(check_overflow_mul(2, -(type_min<int> / 2)));
+    CAV_PASS(!check_overflow_mul(-1, 1));
 }  // namespace test
 #endif
 
@@ -284,12 +287,12 @@ constexpr auto ilog10(T val) {
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(ilog10(9) == 0);
-    static_assert(ilog10(10) == 1);
-    static_assert(ilog10(99) == 1);
-    static_assert(ilog10(100) == 2);
-    static_assert(ilog10(999) == 2);
-    static_assert(ilog10(1000) == 3);
+    CAV_PASS(ilog10(9) == 0);
+    CAV_PASS(ilog10(10) == 1);
+    CAV_PASS(ilog10(99) == 1);
+    CAV_PASS(ilog10(100) == 2);
+    CAV_PASS(ilog10(999) == 2);
+    CAV_PASS(ilog10(1000) == 3);
 }  // namespace test
 #endif
 
@@ -311,9 +314,9 @@ template <std::integral T>
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(isqrt(1ULL << 62ULL) == (1ULL << 31ULL));
-    static_assert(isqrt(~0ULL) == (~0U));
-    static_assert(isqrt(620607744) == (24912));
+    CAV_PASS(isqrt(1ULL << 62ULL) == (1ULL << 31ULL));
+    CAV_PASS(isqrt(~0ULL) == (~0U));
+    CAV_PASS(isqrt(620607744) == (24912));
 }  // namespace test
 #endif
 
@@ -361,15 +364,6 @@ constexpr auto min_elem(auto const& container) {
     return max_e;
 }
 
-template <typename... Ts>
-[[noreturn]] void exit_with_message(::fmt::format_string<Ts...> fmt, Ts&&... args) {
-    std::fflush(stdout);
-    fmt::print(stderr, fmt, FWD(args)...);
-    std::fflush(stderr);
-    assert(!"Debug mode: syntetic fail to pause before exit.");
-    exit(EXIT_FAILURE);
-}
-
 [[nodiscard]] constexpr decl_auto first_elem(auto&& a1, auto&&... /*args*/) {
     return FWD(a1);
 }
@@ -394,29 +388,40 @@ template <auto Default>
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(first_elem(1, 2, 3) == 1);
-    static_assert(first_elem(1.0, 2U, 3.3F, 5LLU) == 1.0);
-    static_assert(cav::eq<decltype(first_elem(1, 2, 3)), int&&>);
-    static_assert(cav::eq<decltype(first_elem(1.0, 2U, 3.3F, 5LLU)), double&&>);
+    CAV_PASS(first_elem(1, 2, 3) == 1);
+    CAV_PASS(first_elem(1.0, 2U, 3.3F, 5LLU) == 1.0);
+    CAV_PASS(cav::eq<decltype(first_elem(1, 2, 3)), int&&>);
+    CAV_PASS(cav::eq<decltype(first_elem(1.0, 2U, 3.3F, 5LLU)), double&&>);
 
-    static_assert(last_elem(1, 2, 3) == 3);
-    static_assert(last_elem(1.0, 2U, 3.3F, 5LLU) == 5LLU);
-    static_assert(cav::eq<decltype(last_elem(1, 2, 3)), int&&>);
-    static_assert(cav::eq<decltype(last_elem(1.0, 2U, 3.3F, 5LLU)), long long unsigned&&>);
+    CAV_PASS(last_elem(1, 2, 3) == 3);
+    CAV_PASS(last_elem(1.0, 2U, 3.3F, 5LLU) == 5LLU);
+    CAV_PASS(cav::eq<decltype(last_elem(1, 2, 3)), int&&>);
+    CAV_PASS(cav::eq<decltype(last_elem(1.0, 2U, 3.3F, 5LLU)), long long unsigned&&>);
 
     static constexpr int   a = 1, b = 2, c = 3;
     static constexpr float d = 1.0, e = 2.0, f = 3.0;
 
-    static_assert(first_elem(a, b, c) == 1);
-    static_assert(first_elem(a, b, c, d, e, f) == 1.0);
-    static_assert(cav::eq<decltype(first_elem(a, b, c)), int const&>);
-    static_assert(cav::eq<decltype(first_elem(d, e, f, a, b, c)), float const&>);
+    CAV_PASS(first_elem(a, b, c) == 1);
+    CAV_PASS(first_elem(a, b, c, d, e, f) == 1.0);
+    CAV_PASS(cav::eq<decltype(first_elem(a, b, c)), int const&>);
+    CAV_PASS(cav::eq<decltype(first_elem(d, e, f, a, b, c)), float const&>);
 
-    static_assert(last_elem(a, b, c) == 3);
-    static_assert(last_elem(a, b, c, d, e, f) == 3.0);
-    static_assert(cav::eq<decltype(last_elem(a, b, c)), int const&>);
-    static_assert(cav::eq<decltype(last_elem(a, b, c, d, e, f)), float const&>);
+    CAV_PASS(last_elem(a, b, c) == 3);
+    CAV_PASS(last_elem(a, b, c, d, e, f) == 3.0);
+    CAV_PASS(cav::eq<decltype(last_elem(a, b, c)), int const&>);
+    CAV_PASS(cav::eq<decltype(last_elem(a, b, c, d, e, f)), float const&>);
 }  // namespace test
+#endif
+
+#ifdef CAV_FOUND_FMT
+template <typename... Ts>
+[[noreturn]] void exit_with_message(::fmt::format_string<Ts...> fmt, Ts&&... args) {
+    std::fflush(stdout);
+    fmt::print(stderr, fmt, FWD(args)...);
+    std::fflush(stderr);
+    assert(!"Debug mode: syntetic fail to pause before exit.");
+    exit(EXIT_FAILURE);
+}
 #endif
 
 }  // namespace cav

@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_MACROS_HPP
-#define CAV_INCLUDE_UTILS_MACROS_HPP
+#ifndef CAV_INCLUDE_MACROS_HPP
+#define CAV_INCLUDE_MACROS_HPP
 
 
 #ifdef NDEBUG
@@ -63,4 +63,4 @@
 #define CAV_STR(s)  CAV__STR(s)
 #define CAV__STR(s) #s
 
-#endif /* CAV_INCLUDE_UTILS_MACROS_HPP */
+#endif /* CAV_INCLUDE_MACROS_HPP */

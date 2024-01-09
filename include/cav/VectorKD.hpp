@@ -1,5 +1,5 @@
-#ifndef CAV_INCLUDE_UTILS_VECTORKD_HPP
-#define CAV_INCLUDE_UTILS_VECTORKD_HPP
+#ifndef CAV_INCLUDE_VECTORKD_HPP
+#define CAV_INCLUDE_VECTORKD_HPP
 
 #include <vector>
 
@@ -21,4 +21,4 @@ using VectorKD = typename detail::make_vectorKD<T, K>::type;
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_VECTORKD_HPP */
+#endif /* CAV_INCLUDE_VECTORKD_HPP */

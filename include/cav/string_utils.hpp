@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_STRINGUTILS_HPP
-#define CAV_INCLUDE_UTILS_STRINGUTILS_HPP
+#ifndef CAV_INCLUDE_STRINGUTILS_HPP
+#define CAV_INCLUDE_STRINGUTILS_HPP
 
 #include <charconv>
 #include <ranges>
@@ -23,7 +23,12 @@
 #include <vector>
 
 #include "type_name.hpp"
-#include "fmt/core.h"
+
+#if __has_include(<fmt/core.h>)
+#define CAV_FOUND_FMT
+#include <fmt/core.h>
+#endif
+
 
 #define SPACES " \t\n\r\f\v"
 
@@ -139,6 +144,7 @@ auto from_string_view(std::string_view s, T& val) {
     return std::from_chars(s.data(), s.data() + s.size(), val);
 }
 
+#ifdef CAV_FOUND_FMT
 template <typename T, typename OnErrT = decltype([] { abort(); })>
 void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = {}) {
     auto res = std::from_chars(str.data(), str.data() + str.size(), val);
@@ -157,8 +163,9 @@ void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = 
         on_error();
     }
 }
+#endif
 
 }  // namespace cav
 
 
-#endif /* CAV_INCLUDE_UTILS_STRINGUTILS_HPP */
+#endif /* CAV_INCLUDE_STRINGUTILS_HPP */

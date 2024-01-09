@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_MP_UTILS_HPP
-#define CAV_INCLUDE_UTILS_MP_UTILS_HPP
+#ifndef CAV_INCLUDE_MP_UTILS_HPP
+#define CAV_INCLUDE_MP_UTILS_HPP
 
+#include "comptime_test.hpp"
 #include "instance_of.hpp"       // IWYU pragma: export
 #include "mp_base.hpp"           //
 #include "syntactic_sugars.hpp"  //
@@ -55,9 +56,9 @@ using change_template_t = typename change_template<CSetT, Tmpl>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<change_template_t<pack<t1>, inherit>, inherit<t1>>);
-    static_assert(eq<change_template_t<inherit<t1, t2>, inherit>, inherit<t1, t2>>);
-    static_assert(eq<change_template_t<pack<>, inherit>, inherit<>>);
+    CAV_PASS(eq<change_template_t<pack<t1>, inherit>, inherit<t1>>);
+    CAV_PASS(eq<change_template_t<inherit<t1, t2>, inherit>, inherit<t1, t2>>);
+    CAV_PASS(eq<change_template_t<pack<>, inherit>, inherit<>>);
 }  // namespace test
 #endif
 
@@ -82,9 +83,9 @@ static constexpr bool is_base_template_v = base_template<Tmpl, T>::value;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<base_template_t<inherit, inherit<t1>>, inherit<t1>>);
-    static_assert(eq<base_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
-    static_assert(eq<base_template_t<inherit, inherit<>>, inherit<>>);
+    CAV_PASS(eq<base_template_t<inherit, inherit<t1>>, inherit<t1>>);
+    CAV_PASS(eq<base_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
+    CAV_PASS(eq<base_template_t<inherit, inherit<>>, inherit<>>);
 }  // namespace test
 #endif
 
@@ -109,8 +110,8 @@ static constexpr bool is_base_val_template_v = base_val_template<Tmpl, T>::value
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<base_val_template_t<ct, inherit<ct<1>>>, ct<1>>);
-    static_assert(is_base_val_template_v<ct, inherit<ct<1>>>);
+    CAV_PASS(eq<base_val_template_t<ct, inherit<ct<1>>>, ct<1>>);
+    CAV_PASS(is_base_val_template_v<ct, inherit<ct<1>>>);
 }  // namespace test
 #endif
 
@@ -154,9 +155,9 @@ template <std::size_t N>
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(nth_arg<0>(0, "1", false) == 0);
-    static_assert(nth_arg<1>(0, "1", false)[0] == '1');
-    static_assert(!nth_arg<2>(0, "1", false));
+    CAV_PASS(nth_arg<0>(0, "1", false) == 0);
+    CAV_PASS(nth_arg<1>(0, "1", false)[0] == '1');
+    CAV_PASS(!nth_arg<2>(0, "1", false));
 }  // namespace test
 #endif
 
@@ -183,12 +184,12 @@ using nth_type_unwrap_t = typename nth_type_unwrap<N, T>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<nth_type_t<0, t1>, t1>);
-    static_assert(eq<nth_type_t<1, t1, t2, t3>, t2>);
-    static_assert(eq<nth_type_t<2, t1, t2, t3>, t3>);
-    static_assert(eq<nth_type_unwrap_t<0, pack<t1>>, t1>);
-    static_assert(eq<nth_type_unwrap_t<1, pack<t1, t2, t3>>, t2>);
-    static_assert(eq<nth_type_unwrap_t<2, pack<t1, t2, t3>>, t3>);
+    CAV_PASS(eq<nth_type_t<0, t1>, t1>);
+    CAV_PASS(eq<nth_type_t<1, t1, t2, t3>, t2>);
+    CAV_PASS(eq<nth_type_t<2, t1, t2, t3>, t3>);
+    CAV_PASS(eq<nth_type_unwrap_t<0, pack<t1>>, t1>);
+    CAV_PASS(eq<nth_type_unwrap_t<1, pack<t1, t2, t3>>, t2>);
+    CAV_PASS(eq<nth_type_unwrap_t<2, pack<t1, t2, t3>>, t3>);
 }  // namespace test
 #endif
 
@@ -240,15 +241,15 @@ using last_type_t = typename last_type<Args...>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<first_type_t<t1, t2, t3>, t1>);
-    static_assert(eq<first_type_t<t1>, t1>);
-    static_assert(eq<first_type_t<>, void>);
-    static_assert(eq<first_type_unwrap_t<pack<t1, t2, t3>>, t1>);
-    static_assert(eq<first_type_unwrap_t<pack<t1>>, t1>);
-    static_assert(eq<first_type_unwrap_t<pack<>>, void>);
-    static_assert(eq<last_type_t<t1, t2, t3>, t3>);
-    static_assert(eq<last_type_t<t1>, t1>);
-    static_assert(eq<last_type_t<>, void>);
+    CAV_PASS(eq<first_type_t<t1, t2, t3>, t1>);
+    CAV_PASS(eq<first_type_t<t1>, t1>);
+    CAV_PASS(eq<first_type_t<>, void>);
+    CAV_PASS(eq<first_type_unwrap_t<pack<t1, t2, t3>>, t1>);
+    CAV_PASS(eq<first_type_unwrap_t<pack<t1>>, t1>);
+    CAV_PASS(eq<first_type_unwrap_t<pack<>>, void>);
+    CAV_PASS(eq<last_type_t<t1, t2, t3>, t3>);
+    CAV_PASS(eq<last_type_t<t1>, t1>);
+    CAV_PASS(eq<last_type_t<>, void>);
 }  // namespace test
 #endif
 
@@ -281,14 +282,14 @@ constexpr bool all_different_v = all_different<Ts...>::value;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(all_equal_v<>);
-    static_assert(all_different_v<>);
-    static_assert(all_equal_v<t1>);
-    static_assert(all_different_v<t1>);
-    static_assert(all_different_v<t1, t2>);
-    static_assert(!all_equal_v<t1, t2>);
-    static_assert(all_equal_v<t1, t1>);
-    static_assert(!all_different_v<t1, t1>);
+    CAV_PASS(all_equal_v<>);
+    CAV_PASS(all_different_v<>);
+    CAV_PASS(all_equal_v<t1>);
+    CAV_PASS(all_different_v<t1>);
+    CAV_PASS(all_different_v<t1, t2>);
+    CAV_PASS(!all_equal_v<t1, t2>);
+    CAV_PASS(all_equal_v<t1, t1>);
+    CAV_PASS(!all_different_v<t1, t1>);
 }  // namespace test
 #endif
 
@@ -298,9 +299,9 @@ constexpr bool has_type_v = (eq<T, Ts> || ...);
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(!has_type_v<t1>);
-    static_assert(has_type_v<t1, t1, t2>);
-    static_assert(!has_type_v<t1, t2, t3>);
+    CAV_PASS(!has_type_v<t1>);
+    CAV_PASS(has_type_v<t1, t1, t2>);
+    CAV_PASS(!has_type_v<t1, t2, t3>);
 }  // namespace test
 #endif
 
@@ -337,13 +338,13 @@ using get_template_t = typename get_template<Tmpl, Ts...>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(has_template_v<pack, inherit<pack<t1>>, t2>);
-    static_assert(has_template_v<pack, inherit<t1>, pack<t2>>);
-    static_assert(!has_template_v<pack, inherit<t1>, t2>);
-    static_assert(!has_template_v<pack>);
-    static_assert(eq<get_template_t<inherit, inherit<>>, inherit<>>);
-    static_assert(eq<get_template_t<inherit, inherit<t1>>, inherit<t1>>);
-    static_assert(eq<get_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
+    CAV_PASS(has_template_v<pack, inherit<pack<t1>>, t2>);
+    CAV_PASS(has_template_v<pack, inherit<t1>, pack<t2>>);
+    CAV_PASS(!has_template_v<pack, inherit<t1>, t2>);
+    CAV_PASS(!has_template_v<pack>);
+    CAV_PASS(eq<get_template_t<inherit, inherit<>>, inherit<>>);
+    CAV_PASS(eq<get_template_t<inherit, inherit<t1>>, inherit<t1>>);
+    CAV_PASS(eq<get_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
 }  // namespace test
 #endif
 
@@ -399,12 +400,12 @@ using get_template_unwrap_t = typename get_template_unwrap<Tmpl, PackTmpl>::type
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(has_type_unwrap_v<t1, pack<t1>>);
-    static_assert(!has_type_unwrap_v<t1, pack<t2>>);
-    static_assert(has_template_unwrap_v<pack, inherit<pack<t1>>>);
-    static_assert(!has_template_unwrap_v<pack, inherit<t1>>);
-    static_assert(eq<get_template_unwrap_t<pack, inherit<pack<t1>>>, pack<t1>>);
-    static_assert(!eq<get_template_unwrap_t<pack, inherit<t1>>, pack<t1>>);
+    CAV_PASS(has_type_unwrap_v<t1, pack<t1>>);
+    CAV_PASS(!has_type_unwrap_v<t1, pack<t2>>);
+    CAV_PASS(has_template_unwrap_v<pack, inherit<pack<t1>>>);
+    CAV_PASS(!has_template_unwrap_v<pack, inherit<t1>>);
+    CAV_PASS(eq<get_template_unwrap_t<pack, inherit<pack<t1>>>, pack<t1>>);
+    CAV_PASS(!eq<get_template_unwrap_t<pack, inherit<t1>>, pack<t1>>);
 }  // namespace test
 #endif
 
@@ -443,12 +444,12 @@ concept same_template = have_same_template<T1, T2>::value;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(have_same_types_v<pack<t1>, pack<t1>>);
-    static_assert(have_same_types_v<pack<t1, t2>, pack<t2, t1>>);
-    static_assert(!have_same_types_v<pack<t1, t2>, pack<t1, t3>>);
-    static_assert(have_same_template_v<pack<t1>, pack<t2>>);
-    static_assert(have_same_template_v<pack<t1, t2>, pack<>>);
-    static_assert(!have_same_template_v<pack<t1>, inherit<pack<t1>>>);
+    CAV_PASS(have_same_types_v<pack<t1>, pack<t1>>);
+    CAV_PASS(have_same_types_v<pack<t1, t2>, pack<t2, t1>>);
+    CAV_PASS(!have_same_types_v<pack<t1, t2>, pack<t1, t3>>);
+    CAV_PASS(have_same_template_v<pack<t1>, pack<t2>>);
+    CAV_PASS(have_same_template_v<pack<t1, t2>, pack<>>);
+    CAV_PASS(!have_same_template_v<pack<t1>, inherit<pack<t1>>>);
 }  // namespace test
 #endif
 
@@ -462,7 +463,7 @@ namespace test {
 /// @tparam Ts  Types to merge
 template <typename AccPackTmpl, typename... Ts>
 struct unique {
-    static_assert(sizeof...(Ts) == 0);
+    CAV_PASS(sizeof...(Ts) == 0);
     using type = AccPackTmpl;
 };
 
@@ -489,10 +490,10 @@ using unique_t = typename unique<Acc, Ts...>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<pack<t1>, unique_t<pack<>, t1>>);
-    static_assert(eq<pack<t1>, unique_t<pack<>, t1, t1>>);
-    static_assert(eq<pack<t2, t1>, unique_t<pack<>, t2, t1, t1, t2>>);
-    static_assert(eq<pack<t1, t2>, unique_t<pack<>, t1, t1, t1, t2>>);
+    CAV_PASS(eq<pack<t1>, unique_t<pack<>, t1>>);
+    CAV_PASS(eq<pack<t1>, unique_t<pack<>, t1, t1>>);
+    CAV_PASS(eq<pack<t2, t1>, unique_t<pack<>, t2, t1, t1, t2>>);
+    CAV_PASS(eq<pack<t1, t2>, unique_t<pack<>, t1, t1, t1, t2>>);
 }  // namespace test
 #endif
 
@@ -506,10 +507,10 @@ using fill_unique_t = typename fill_unique<PackTmpl, Ts...>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<fill_unique_t<pack, t1>, pack<t1>>);
-    static_assert(eq<fill_unique_t<pack, t1, t1>, pack<t1>>);
-    static_assert(eq<fill_unique_t<pack, t2, t1, t1, t2>, pack<t2, t1>>);
-    static_assert(eq<fill_unique_t<pack, t1, t1, t1, t2>, pack<t1, t2>>);
+    CAV_PASS(eq<fill_unique_t<pack, t1>, pack<t1>>);
+    CAV_PASS(eq<fill_unique_t<pack, t1, t1>, pack<t1>>);
+    CAV_PASS(eq<fill_unique_t<pack, t2, t1, t1, t2>, pack<t2, t1>>);
+    CAV_PASS(eq<fill_unique_t<pack, t1, t1, t1, t2>, pack<t1, t2>>);
 }  // namespace test
 #endif
 
@@ -558,14 +559,14 @@ using pack_union_t = typename pack_union<PackTmpl, Ts...>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<pack<t1>, pack_union_t<pack, t1>>);
-    static_assert(eq<pack<t1>, pack_union_t<pack, t1, t1>>);
-    static_assert(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, t1, t5>>);
-    static_assert(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, t1, t5>>);
-    static_assert(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, pack<t5, t1>>>);
-    static_assert(eq<pack<t1, t5>, pack_union_t<pack, pack<t1, t1>, pack<t5>>>);
-    static_assert(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, pack<t1>>>);
-    static_assert(eq<pack<t1, t5>, pack_union_t<pack, pack<>, pack<t1, t1>, t5>>);
+    CAV_PASS(eq<pack<t1>, pack_union_t<pack, t1>>);
+    CAV_PASS(eq<pack<t1>, pack_union_t<pack, t1, t1>>);
+    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, t1, t5>>);
+    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, t1, t5>>);
+    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, pack<t5, t1>>>);
+    CAV_PASS(eq<pack<t1, t5>, pack_union_t<pack, pack<t1, t1>, pack<t5>>>);
+    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, pack<t1>>>);
+    CAV_PASS(eq<pack<t1, t5>, pack_union_t<pack, pack<>, pack<t1, t1>, t5>>);
 }  // namespace test
 #endif
 
@@ -603,10 +604,10 @@ using fill_pack_excluding_t = typename fill_pack_excluding<AccT, ExT, Ts...>::ty
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<fill_pack_excluding_t<pack<>, t0, t0>, pack<t0>>);
-    static_assert(eq<fill_pack_excluding_t<pack<>, t0, t1>, pack<t1>>);
-    static_assert(eq<fill_pack_excluding_t<pack<>, t0, t0, t1, t2, t0, t1>, pack<t1, t2, t1>>);
-    static_assert(eq<fill_pack_excluding_t<pack<>, t0, t0, t0, t0>, pack<t0>>);
+    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0>, pack<t0>>);
+    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t1>, pack<t1>>);
+    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0, t1, t2, t0, t1>, pack<t1, t2, t1>>);
+    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0, t0, t0>, pack<t0>>);
 }  // namespace test
 #endif
 
@@ -624,10 +625,10 @@ using remove_from_pack_t = typename remove_from_pack<AccT, ExT>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<remove_from_pack_t<pack<t0>, t0>, pack<t0>>);
-    static_assert(eq<remove_from_pack_t<pack<t1>, t0>, pack<t1>>);
-    static_assert(eq<remove_from_pack_t<pack<t0, t1, t2, t0, t1>, t0>, pack<t1, t2, t1>>);
-    static_assert(eq<remove_from_pack_t<pack<t0, t0, t0>, t0>, pack<t0>>);
+    CAV_PASS(eq<remove_from_pack_t<pack<t0>, t0>, pack<t0>>);
+    CAV_PASS(eq<remove_from_pack_t<pack<t1>, t0>, pack<t1>>);
+    CAV_PASS(eq<remove_from_pack_t<pack<t0, t1, t2, t0, t1>, t0>, pack<t1, t2, t1>>);
+    CAV_PASS(eq<remove_from_pack_t<pack<t0, t0, t0>, t0>, pack<t0>>);
 }  // namespace test
 #endif
 
@@ -641,11 +642,11 @@ using pack_union_excluding_t = typename pack_union_excluding<PackTmpl, ExT, Ts..
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<pack_union_excluding_t<pack, t0, t0>, pack<t0>>);
-    static_assert(eq<pack_union_excluding_t<pack, t0, t1>, pack<t1>>);
-    static_assert(eq<pack_union_excluding_t<pack, t0, t0, t1>, pack<t1>>);
-    static_assert(eq<pack_union_excluding_t<pack, t0, t0, t1, t2>, pack<t1, t2>>);
-    static_assert(eq<pack_union_excluding_t<pack, t0, t0, t1, t2, t1, t2, t2, t2>, pack<t1, t2>>);
+    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0>, pack<t0>>);
+    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t1>, pack<t1>>);
+    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1>, pack<t1>>);
+    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1, t2>, pack<t1, t2>>);
+    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1, t2, t1, t2, t2, t2>, pack<t1, t2>>);
 }  // namespace test
 #endif
 
@@ -668,8 +669,8 @@ using collapse_if_one_t = typename collapse_if_one<T>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<collapse_if_one_t<pack<void>>, void>);
-    static_assert(eq<collapse_if_one_t<pack<void, t1>>, pack<void, t1>>);
+    CAV_PASS(eq<collapse_if_one_t<pack<void>>, void>);
+    CAV_PASS(eq<collapse_if_one_t<pack<void, t1>>, pack<void, t1>>);
 }  // namespace test
 #endif
 
@@ -709,10 +710,10 @@ using pack_difference_t = typename pack_difference<Ts...>::type;
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(eq<pack_difference_t<pack<t1, t2, t3, t4>, pack<t1, t4>>, pack<t2, t3>>);
-    static_assert(eq<pack_difference_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);
-    static_assert(eq<pack_difference_t<pack<t1, t2>, pack<t3, t4>>, pack<t1, t2>>);
-    static_assert(eq<pack_difference_t<pack<>, pack<t3, t4>>, pack<>>);
+    CAV_PASS(eq<pack_difference_t<pack<t1, t2, t3, t4>, pack<t1, t4>>, pack<t2, t3>>);
+    CAV_PASS(eq<pack_difference_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);
+    CAV_PASS(eq<pack_difference_t<pack<t1, t2>, pack<t3, t4>>, pack<t1, t2>>);
+    CAV_PASS(eq<pack_difference_t<pack<>, pack<t3, t4>>, pack<>>);
 }  // namespace test
 #endif
 
@@ -724,4 +725,4 @@ concept not_copy_move_ctor = (sizeof...(Ts) > 1 || !eq_no_cvr<first_type_t<Ts...
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_MP_UTILS_HPP */
+#endif /* CAV_INCLUDE_MP_UTILS_HPP */

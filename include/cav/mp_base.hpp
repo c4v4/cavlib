@@ -124,7 +124,7 @@ struct multi_lambda : public Ts... {
 template <typename... Ts>
 multi_lambda(Ts...) -> multi_lambda<Ts...>;
 
-/// @brief False value that can be used in static_asserts.
+/// @brief False value that can be used in CAV_PASSs.
 template <typename...>
 constexpr bool always_false = false;
 

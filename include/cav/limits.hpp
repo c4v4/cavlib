@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_LIMITS_HPP
-#define CAV_INCLUDE_UTILS_LIMITS_HPP
+#ifndef CAV_INCLUDE_LIMITS_HPP
+#define CAV_INCLUDE_LIMITS_HPP
 
 #include <limits>
 
@@ -45,4 +45,4 @@ constexpr T type_min = limits<T>::min;
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_LIMITS_HPP */
+#endif /* CAV_INCLUDE_LIMITS_HPP */

@@ -13,13 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_STATICSTR_HPP
-#define CAV_INCLUDE_UTILS_STATICSTR_HPP
+#ifndef CAV_INCLUDE_STATICSTR_HPP
+#define CAV_INCLUDE_STATICSTR_HPP
 
 #include <array>
 #include <cassert>
 #include <string_view>
 
+#include "comptime_test.hpp"   //
 #include "mp_base.hpp"         //
 #include "util_functions.hpp"  //
 
@@ -89,9 +90,11 @@ public:
         return {base::begin(), base::end() - 1};  // remove \0
     }
 
+#ifdef CAV_FOUND_FMT
     constexpr operator fmt::string_view() const {
         return {base::data(), base::size() - 1};  // remove \0
     }
+#endif
 
     [[nodiscard]] static constexpr std::size_t size() {
         return N;
@@ -169,16 +172,16 @@ namespace test {
     static constexpr char strb[] = "b";
     static constexpr auto strc   = std::array{'c', '\0'};
 
-    static_assert(str_concat(stra) == StaticStr{"a"});
-    static_assert(str_concat(strb) == StaticStr{"b"});
-    static_assert(str_concat(strc) == StaticStr{"c"});
-    static_assert(str_concat(stra, stra) == StaticStr{"aa"});
-    static_assert(str_concat(strb, strb) == StaticStr{"bb"});
-    static_assert(str_concat(strc, strc) == StaticStr{"cc"});
-    static_assert(str_concat(stra, strc) == StaticStr{"ac"});
-    static_assert(str_concat(strb, stra) == StaticStr{"ba"});
-    static_assert(str_concat(strc, strb) == StaticStr{"cb"});
-    static_assert(str_concat(stra, strb, strc) == StaticStr{"abc"});
+    CAV_PASS(str_concat(stra) == StaticStr{"a"});
+    CAV_PASS(str_concat(strb) == StaticStr{"b"});
+    CAV_PASS(str_concat(strc) == StaticStr{"c"});
+    CAV_PASS(str_concat(stra, stra) == StaticStr{"aa"});
+    CAV_PASS(str_concat(strb, strb) == StaticStr{"bb"});
+    CAV_PASS(str_concat(strc, strc) == StaticStr{"cc"});
+    CAV_PASS(str_concat(stra, strc) == StaticStr{"ac"});
+    CAV_PASS(str_concat(strb, stra) == StaticStr{"ba"});
+    CAV_PASS(str_concat(strc, strb) == StaticStr{"cb"});
+    CAV_PASS(str_concat(stra, strb, strc) == StaticStr{"abc"});
 }
 #endif
 
@@ -199,12 +202,12 @@ template <std::integral auto Val>
 
 #ifdef COMP_TESTS
 namespace test {
-    static_assert(int_to_const_str<12345>()[0] == '1');
-    static_assert(int_to_const_str<12345>()[1] == '2');
-    static_assert(int_to_const_str<12345>()[2] == '3');
-    static_assert(int_to_const_str<12345>()[3] == '4');
-    static_assert(int_to_const_str<12345>()[4] == '5');
-    static_assert(int_to_const_str<12345>()[5] == '\0');
+    CAV_PASS(int_to_const_str<12345>()[0] == '1');
+    CAV_PASS(int_to_const_str<12345>()[1] == '2');
+    CAV_PASS(int_to_const_str<12345>()[2] == '3');
+    CAV_PASS(int_to_const_str<12345>()[3] == '4');
+    CAV_PASS(int_to_const_str<12345>()[4] == '5');
+    CAV_PASS(int_to_const_str<12345>()[5] == '\0');
 }
 #endif
 
@@ -220,7 +223,7 @@ constexpr cav::ct<Str> operator""_cs() noexcept {
     return {};
 }
 
-static_assert(cav::StaticStr("prova") == "prova"_s);
-static_assert(cav::eq<cav::StaticStr<6>, TYPEOF("prova"_s)>);
+CAV_PASS(cav::StaticStr("prova") == "prova"_s);
+CAV_PASS(cav::eq<cav::StaticStr<6>, TYPEOF("prova"_s)>);
 
-#endif /* CAV_INCLUDE_UTILS_STATICSTR_HPP */
+#endif /* CAV_INCLUDE_STATICSTR_HPP */

@@ -108,7 +108,7 @@ struct MatrixKD<T, 0> {
     }
 
     [[nodiscard]] constexpr SubMatrixKD<self, 0> operator[](size_t /*i*/) noexcept {
-        static_assert(always_false<self>, "Cannot index a 0-dimensional matrix");
+        CAV_PASS(always_false<self>, "Cannot index a 0-dimensional matrix");
         return {};
     }
 
@@ -131,7 +131,7 @@ namespace detail {
 
 template <typename MatT, size_t FreeK>
 struct SubMatrixKD {
-    static_assert(0 <= FreeK && FreeK <= MatT::dimensions);
+    CAV_PASS(0 <= FreeK && FreeK <= MatT::dimensions);
 
     using self                    = SubMatrixKD<MatT, FreeK>;
     using value_type              = detail::get_value_t<MatT>;

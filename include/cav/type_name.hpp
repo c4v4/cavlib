@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_TYPE_NAME_HPP
-#define CAV_INCLUDE_UTILS_TYPE_NAME_HPP
+#ifndef CAV_INCLUDE_TYPE_NAME_HPP
+#define CAV_INCLUDE_TYPE_NAME_HPP
 
 #include <array>
 #include <source_location>
@@ -48,8 +48,8 @@ private:
         constexpr auto len3_name = _wrapped_type_name<int>();
         constexpr auto u_name    = _wrapped_type_name<U>();
 
-        static_assert(len4_name != len3_name);
-        static_assert(len4_name.size() > len3_name.size());
+        CAV_PASS(len4_name != len3_name);
+        CAV_PASS(len4_name.size() > len3_name.size());
         constexpr size_t prefix_len    = len4_name.find("void");
         constexpr size_t one_char_size = 1;  // len4_name.size() - len3_name.size();
         constexpr size_t wout_type_len = len4_name.size() - 4 * one_char_size;
@@ -77,4 +77,4 @@ public:
 };
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_TYPE_NAME_HPP */
+#endif /* CAV_INCLUDE_TYPE_NAME_HPP */

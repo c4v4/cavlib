@@ -70,7 +70,7 @@ namespace detail {
         static constexpr std::string_view name    = cs_name;
     };
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
     namespace test {
         enum class TEST { A, B };
 
@@ -126,7 +126,7 @@ template <auto X>
     return map[idx];
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace detail::test {
     static_assert(enum_name<TEST::A>() == enum_name(TEST::A));
     static_assert(enum_name<TEST::B>() == enum_name(TEST::B));

@@ -22,7 +22,7 @@
 
 namespace cav {
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     struct t0 {};
 
@@ -53,7 +53,7 @@ struct change_template<FromTmpl<Ts...>, ToTmpl> {
 template <typename CSetT, template <class...> class Tmpl>
 using change_template_t = typename change_template<CSetT, Tmpl>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<change_template_t<pack<t1>, inherit>, inherit<t1>>);
     static_assert(eq<change_template_t<inherit<t1, t2>, inherit>, inherit<t1, t2>>);
@@ -80,7 +80,7 @@ using base_template_t = typename base_template<Tmpl, U>::type;
 template <template <class...> class Tmpl, typename T>
 static constexpr bool is_base_template_v = base_template<Tmpl, T>::value;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<base_template_t<inherit, inherit<t1>>, inherit<t1>>);
     static_assert(eq<base_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
@@ -107,7 +107,7 @@ using base_val_template_t = typename base_val_template<Tmpl, T>::type;
 template <template <auto...> class Tmpl, typename T>
 static constexpr bool is_base_val_template_v = base_val_template<Tmpl, T>::value;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<base_val_template_t<ct, inherit<ct<1>>>, ct<1>>);
     static_assert(is_base_val_template_v<ct, inherit<ct<1>>>);
@@ -152,7 +152,7 @@ template <std::size_t N>
     }(std::make_index_sequence<N>{});
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(nth_arg<0>(0, "1", false) == 0);
     static_assert(nth_arg<1>(0, "1", false)[0] == '1');
@@ -181,7 +181,7 @@ struct nth_type_unwrap<N, Tmpl<Ts...>> {
 template <std::size_t N, typename T>
 using nth_type_unwrap_t = typename nth_type_unwrap<N, T>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<nth_type_t<0, t1>, t1>);
     static_assert(eq<nth_type_t<1, t1, t2, t3>, t2>);
@@ -238,7 +238,7 @@ struct last_type<> {
 template <class... Args>
 using last_type_t = typename last_type<Args...>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<first_type_t<t1, t2, t3>, t1>);
     static_assert(eq<first_type_t<t1>, t1>);
@@ -279,7 +279,7 @@ struct all_different<T, Ts...> {
 template <typename... Ts>
 constexpr bool all_different_v = all_different<Ts...>::value;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(all_equal_v<>);
     static_assert(all_different_v<>);
@@ -296,7 +296,7 @@ namespace test {
 template <typename T, typename... Ts>
 constexpr bool has_type_v = (eq<T, Ts> || ...);
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(!has_type_v<t1>);
     static_assert(has_type_v<t1, t1, t2>);
@@ -335,7 +335,7 @@ template <template <class...> class Tmpl, typename... Ts>
 using get_template_t = typename get_template<Tmpl, Ts...>::type;
 
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(has_template_v<pack, inherit<pack<t1>>, t2>);
     static_assert(has_template_v<pack, inherit<t1>, pack<t2>>);
@@ -397,7 +397,7 @@ template <template <class...> class Tmpl, typename PackTmpl>
 using get_template_unwrap_t = typename get_template_unwrap<Tmpl, PackTmpl>::type;
 
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(has_type_unwrap_v<t1, pack<t1>>);
     static_assert(!has_type_unwrap_v<t1, pack<t2>>);
@@ -441,7 +441,7 @@ constexpr bool have_same_template_v = have_same_template<T1, T2>::value;
 template <typename T1, typename T2>
 concept same_template = have_same_template<T1, T2>::value;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(have_same_types_v<pack<t1>, pack<t1>>);
     static_assert(have_same_types_v<pack<t1, t2>, pack<t2, t1>>);
@@ -487,7 +487,7 @@ struct unique<PackTmpl<AcTs...>, T, Ts...> {
 template <typename Acc, typename... Ts>
 using unique_t = typename unique<Acc, Ts...>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<pack<t1>, unique_t<pack<>, t1>>);
     static_assert(eq<pack<t1>, unique_t<pack<>, t1, t1>>);
@@ -504,7 +504,7 @@ struct fill_unique {
 template <template <class...> class PackTmpl, typename... Ts>
 using fill_unique_t = typename fill_unique<PackTmpl, Ts...>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<fill_unique_t<pack, t1>, pack<t1>>);
     static_assert(eq<fill_unique_t<pack, t1, t1>, pack<t1>>);
@@ -556,7 +556,7 @@ struct pack_union<PackTmpl> {
 template <template <class...> class PackTmpl, typename... Ts>
 using pack_union_t = typename pack_union<PackTmpl, Ts...>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<pack<t1>, pack_union_t<pack, t1>>);
     static_assert(eq<pack<t1>, pack_union_t<pack, t1, t1>>);
@@ -601,7 +601,7 @@ struct fill_pack_excluding<PackTmpl<PTs...>, ExT, ExT, Ts...> {
 template <typename AccT, typename ExT, typename... Ts>
 using fill_pack_excluding_t = typename fill_pack_excluding<AccT, ExT, Ts...>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<fill_pack_excluding_t<pack<>, t0, t0>, pack<t0>>);
     static_assert(eq<fill_pack_excluding_t<pack<>, t0, t1>, pack<t1>>);
@@ -622,7 +622,7 @@ struct remove_from_pack<PackTmpl<PTs...>, ExT> {
 template <typename AccT, typename ExT>
 using remove_from_pack_t = typename remove_from_pack<AccT, ExT>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<remove_from_pack_t<pack<t0>, t0>, pack<t0>>);
     static_assert(eq<remove_from_pack_t<pack<t1>, t0>, pack<t1>>);
@@ -639,7 +639,7 @@ struct pack_union_excluding {
 template <template <class...> class PackTmpl, typename ExT, typename... Ts>
 using pack_union_excluding_t = typename pack_union_excluding<PackTmpl, ExT, Ts...>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<pack_union_excluding_t<pack, t0, t0>, pack<t0>>);
     static_assert(eq<pack_union_excluding_t<pack, t0, t1>, pack<t1>>);
@@ -666,7 +666,7 @@ struct collapse_if_one<PackTmpl<Ts...>> {
 template <typename T>
 using collapse_if_one_t = typename collapse_if_one<T>::type;
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<collapse_if_one_t<pack<void>>, void>);
     static_assert(eq<collapse_if_one_t<pack<void, t1>>, pack<void, t1>>);
@@ -707,7 +707,7 @@ template <typename... Ts>
 using pack_difference_t = typename pack_difference<Ts...>::type;
 
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(eq<pack_difference_t<pack<t1, t2, t3, t4>, pack<t1, t4>>, pack<t2, t3>>);
     static_assert(eq<pack_difference_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);

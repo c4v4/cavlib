@@ -20,11 +20,14 @@
 #include <memory>
 #include <type_traits>
 
+#include "comptime_test.hpp"
+#include "syntactic_sugars.hpp"
+
 namespace cav {
 
 /// @brief Like std::span but it owns the underlying pointer and frees the memory on destruction
 /// @tparam T
-template <typename T, class Deleter = std::default_delete<T[]>>
+template <typename T, class Deleter = decltype([](T ptr[]) { delete[] ptr; })>
 class OwnSpan {
 public:
     using self            = OwnSpan;
@@ -34,10 +37,10 @@ public:
     using const_reference = T const&;
     using const_pointer   = T const*;
 
-    OwnSpan() = default;
+    constexpr OwnSpan() = default;
 
     template <std::integral S, typename U = T, typename... Ts>
-    OwnSpan(S c_size, U const& first = {}, Ts const&... args)
+    constexpr OwnSpan(S c_size, U const& first = {}, Ts const&... args)
         : ptr(c_size > 0 ? new T[c_size] : nullptr)
         , sz(c_size) {
         assert(c_size >= 0);
@@ -45,32 +48,38 @@ public:
             std::construct_at(&val, first, args...);
     }
 
-    OwnSpan(T* c_ptr, size_t c_size, Deleter&& c_del)
+    constexpr OwnSpan(T* c_ptr, size_t c_size, Deleter const& c_del)
+        : ptr(c_size > 0 ? c_ptr : nullptr)
+        , sz(c_size)
+        , del(c_del) {
+    }
+
+    constexpr OwnSpan(T* c_ptr, size_t c_size, Deleter&& c_del)
         : ptr(c_size > 0 ? c_ptr : nullptr)
         , sz(c_size)
         , del(std::move(c_del)) {
     }
 
-    OwnSpan(T* c_ptr, size_t c_size)
+    constexpr OwnSpan(T* c_ptr, size_t c_size)
         : ptr(c_size > 0 ? c_ptr : nullptr)
         , sz(c_size) {
     }
 
-    OwnSpan(OwnSpan const& other)
+    constexpr OwnSpan(OwnSpan const& other)
         : ptr(other.sz > 0 ? new T[other.sz] : nullptr)
         , sz(other.sz) {
         for (size_t i = 0; i < sz; ++i)
             std::construct_at(ptr + i, other[i]);
     }
 
-    OwnSpan(OwnSpan&& other) noexcept
+    constexpr OwnSpan(OwnSpan&& other) noexcept
         : ptr(other.ptr)
         , sz(other.sz) {
         other.ptr = nullptr;
         other.sz  = 0;
     }
 
-    OwnSpan& operator=(OwnSpan const& other) {
+    constexpr OwnSpan& operator=(OwnSpan const& other) {
         if (&other == this)
             return *this;
 
@@ -83,14 +92,14 @@ public:
         return *this;
     }
 
-    OwnSpan& operator=(OwnSpan&& other) noexcept {
+    constexpr OwnSpan& operator=(OwnSpan&& other) noexcept {
         _free();
         std::swap(ptr, other.ptr);
         std::swap(sz, other.sz);
         return *this;
     }
 
-    ~OwnSpan() {
+    constexpr ~OwnSpan() {
         _free();
     }
 
@@ -110,64 +119,64 @@ public:
         return ptr;
     }
 
-    [[nodiscard]] pointer begin() {
+    [[nodiscard]] constexpr pointer begin() {
         return ptr;
     }
 
-    [[nodiscard]] const_pointer begin() const {
+    [[nodiscard]] constexpr const_pointer begin() const {
         return ptr;
     }
 
-    [[nodiscard]] pointer end() {
+    [[nodiscard]] constexpr pointer end() {
         return ptr + sz;
     }
 
-    [[nodiscard]] const_pointer end() const {
+    [[nodiscard]] constexpr const_pointer end() const {
         return ptr + sz;
     }
 
-    [[nodiscard]] size_t size() const {
+    [[nodiscard]] constexpr size_t size() const {
         return sz;
     }
 
-    [[nodiscard]] bool empty() const {
+    [[nodiscard]] constexpr bool empty() const {
         assert((ptr == nullptr) == (sz == 0));
         return sz == 0;
     }
 
-    [[nodiscard]] reference front() {
+    [[nodiscard]] constexpr reference front() {
         return ptr[0];
     }
 
-    [[nodiscard]] const_reference front() const {
+    [[nodiscard]] constexpr const_reference front() const {
         return ptr[0];
     }
 
-    [[nodiscard]] reference back() {
+    [[nodiscard]] constexpr reference back() {
         return ptr[sz - 1];
     }
 
-    [[nodiscard]] const_reference back() const {
+    [[nodiscard]] constexpr const_reference back() const {
         return ptr[sz - 1];
     }
 
-    [[nodiscard]] reference operator[](size_t i) {
+    [[nodiscard]] constexpr reference operator[](size_t i) {
         assert(i < size());
         return ptr[i];
     }
 
-    [[nodiscard]] const_reference operator[](size_t i) const {
+    [[nodiscard]] constexpr const_reference operator[](size_t i) const {
         assert(i < size());
         return ptr[i];
     }
 
-    void assign_all(T const& val) noexcept {
+    constexpr void assign_all(T const& val) noexcept {
         for (T& v : *this)
             v = val;
     }
 
 private:
-    void _free() {
+    constexpr void _free() {
         if (ptr != nullptr)
             del(ptr);
         ptr = nullptr;
@@ -181,6 +190,41 @@ private:
 
 template <std::integral S, typename T>
 OwnSpan(S, T) -> OwnSpan<T>;
+
+#ifdef COMP_TESTS
+namespace test {
+
+    static constexpr int  buff[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+    static constexpr auto span    = OwnSpan(buff, 8, nop);
+
+    CAV_PASS(span.size() == 8);
+    CAV_PASS(span[0] == 0);
+    CAV_PASS(span[7] == 7);
+    CAV_PASS(span.front() == 0);
+    CAV_PASS(span.back() == 7);
+    CAV_PASS(span.begin() == buff);
+    CAV_PASS(span.end() == buff + 8);
+    CAV_PASS(span.data() == buff);
+    CAV_PASS(!span.empty());
+
+    CAV_FAIL(span[7] == 8);
+    CAV_FAIL(span[8] == 0);
+    CAV_FAIL(span[16] == 0);
+    CAV_FAIL(span[-16] == 0);
+
+    CAV_BLOCK_PASS({
+        auto span2 = OwnSpan<bool>(8);
+        for (bool& b : span2)
+            b = true;
+        span2.assign_all(false);
+
+        span2.front() = span2.back() = true;
+        span2[1] = span2[6] = true;
+        return span2[0] != span2[2];
+    });
+
+}  // namespace test
+#endif
 
 }  // namespace cav
 

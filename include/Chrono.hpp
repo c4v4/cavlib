@@ -76,7 +76,7 @@ struct Chrono {
     }
 };
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(Chrono<nsec>::template time_cast<usec>(1) == 1e-3);
     static_assert(Chrono<usec>::template time_cast<usec>(1) == 1.0);

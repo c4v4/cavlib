@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_MATRIXKD_HPP
-#define CAV_INCLUDE_UTILS_MATRIXKD_HPP
+#ifndef CAV_INCLUDE_MATRIXKD_HPP
+#define CAV_INCLUDE_MATRIXKD_HPP
 
 #include <bits/utility.h>
 
@@ -24,24 +24,13 @@
 #include <span>
 
 #include "OwnSpan.hpp"
+#include "comptime_test.hpp"
+#include "mp_base.hpp"
 #include "syntactic_sugars.hpp"
 
 namespace cav {
 
-namespace detail {
-    template <typename ContT>
-    [[nodiscard]] constexpr auto sub_prod(ContT const& container, size_t idx_beg) {
-        if (idx_beg >= container.size())
-            return typename ContT::value_type{};
-
-        auto result = container[idx_beg];
-        for (size_t i = idx_beg + 1; i < container.size(); ++i)
-            result *= container[i];
-        return result;
-    }
-}  // namespace detail
-
-template <typename, size_t, size_t>
+template <typename, size_t>
 struct SubMatrixKD;
 
 template <typename T, size_t K = 1>
@@ -49,47 +38,52 @@ struct MatrixKD {
     using self       = MatrixKD<T, K>;
     using value_type = T;
 
-    OwnSpan<T>            own_span;
-    std::array<size_t, K> sizes;
-    size_t                rem_size;
+    static constexpr size_t dimensions = K;
 
-    MatrixKD() = default;
+    OwnSpan<T> own_span         = {};
+    uint32_t   sizes[K]         = {};
+    uint32_t   rem_sizes[K - 1] = {};
+
+    constexpr MatrixKD() = default;
 
     template <std::integral... Ts>
     requires(sizeof...(Ts) == K)
-    MatrixKD(T const& default_val, Ts... c_sizes)
+    constexpr MatrixKD(T const& default_val, Ts... c_sizes)
         : own_span{(c_sizes * ...), default_val}
-        , sizes{static_cast<size_t>(c_sizes)...}
-        , rem_size{detail::sub_prod(sizes, 1)} {
+        , sizes{static_cast<uint32_t>(c_sizes)...} {
+
+        rem_sizes[K - 2] = sizes[K - 2];
+        for (int i = K - 3; i >= 0; --i)
+            rem_sizes[i] = rem_sizes[i + 1] * sizes[i];
     }
 
-    [[nodiscard]] size_t size() const noexcept {
+    [[nodiscard]] constexpr size_t size() const noexcept {
         return sizes[0];
     }
 
-    [[nodiscard]] SubMatrixKD<self, K - 1, K> operator[](size_t i) {
+    [[nodiscard]] constexpr SubMatrixKD<self, K - 1> operator[](uint32_t i) {
         assert(i < size());
-        return {*this, i * rem_size, detail::sub_prod(sizes, 2)};
+        return {*this, i * rem_sizes[0], rem_sizes[1]};
     }
 
-    [[nodiscard]] SubMatrixKD<self const, K - 1, K> operator[](size_t i) const {
+    [[nodiscard]] constexpr SubMatrixKD<self const, K - 1> operator[](uint32_t i) const {
         assert(i < size());
-        return {*this, i * rem_size, detail::sub_prod(sizes, 2)};
+        return {*this, i * rem_sizes[0], rem_sizes[1]};
     }
 
-    [[nodiscard]] T* data() {
+    [[nodiscard]] constexpr T* data() {
         return own_span.data();
     }
 
-    [[nodiscard]] T const* data() const {
+    [[nodiscard]] constexpr T const* data() const {
         return own_span.data();
     }
 
-    [[nodiscard]] auto& data_span() {
+    [[nodiscard]] constexpr auto& data_span() {
         return own_span;
     }
 
-    [[nodiscard]] auto const& data_span() const {
+    [[nodiscard]] constexpr auto const& data_span() const {
         return own_span;
     }
 };
@@ -97,67 +91,156 @@ struct MatrixKD {
 template <typename T, typename... SzTs>
 MatrixKD(T, SzTs...) -> MatrixKD<cav::no_cvr<T>, sizeof...(SzTs)>;
 
+template <typename T>
+struct MatrixKD<T, 0> {
+    using self       = MatrixKD<T, 0>;
+    using value_type = T;
+
+    static constexpr size_t dimensions = 0;
+
+    constexpr MatrixKD() = default;
+
+    constexpr MatrixKD(T const& default_val) {
+    }
+
+    [[nodiscard]] static constexpr size_t size() noexcept {
+        return 0;
+    }
+
+    [[nodiscard]] constexpr SubMatrixKD<self, 0> operator[](size_t /*i*/) noexcept {
+        static_assert(always_false<self>, "Cannot index a 0-dimensional matrix");
+        return {};
+    }
+
+    [[nodiscard]] static constexpr T* data() noexcept {
+        return nullptr;
+    }
+
+    [[nodiscard]] static constexpr auto data_span() noexcept {
+        return OwnSpan<T>{};
+    }
+};
+
 namespace detail {
+
     template <typename T>
     using get_value_t = if_t<std::is_const_v<T>,
                              typename T::value_type const,
                              typename T::value_type>;
 }  // namespace detail
 
-template <typename MatT, size_t FreeK, size_t K>
+template <typename MatT, size_t FreeK>
 struct SubMatrixKD {
-    using self                    = SubMatrixKD<MatT, FreeK, K>;
+    static_assert(0 <= FreeK && FreeK <= MatT::dimensions);
+
+    using self                    = SubMatrixKD<MatT, FreeK>;
     using value_type              = detail::get_value_t<MatT>;
-    static constexpr size_t fix_k = K - FreeK;
+    static constexpr size_t fix_k = MatT::dimensions - FreeK;
 
-    MatT&  mat;
-    size_t offset;
-    size_t rem_size;
+    MatT&    mat;
+    uint32_t offset;
+    uint32_t rem_size;
 
-    [[nodiscard]] size_t size() const noexcept {
+    [[nodiscard]] constexpr size_t size() const noexcept {
         return mat.sizes[fix_k];
     }
 
-    SubMatrixKD<MatT, FreeK - 1, K> operator[](size_t i) {
+    constexpr SubMatrixKD<MatT, FreeK - 1> operator[](size_t i) {
         assert(i < size());
-        return {mat, offset + i * rem_size, detail::sub_prod(mat.sizes, fix_k + 1)};
+        return {mat, offset + i * rem_size, mat.rem_sizes[fix_k]};
     }
 
-    SubMatrixKD<MatT const, FreeK - 1, K> operator[](size_t i) const {
+    constexpr SubMatrixKD<MatT const, FreeK - 1> operator[](size_t i) const {
         assert(i < size());
-        return {mat, offset + i * rem_size, detail::sub_prod(mat.sizes, fix_k + 1)};
+        return {mat, offset + i * rem_size, mat.rem_sizes[fix_k]};
     }
 
-    [[nodiscard]] value_type* data() {
+    [[nodiscard]] constexpr value_type* data() {
         return mat.data();
     }
 
-    [[nodiscard]] value_type const* data() const {
+    [[nodiscard]] constexpr value_type const* data() const {
         return mat.data();
     }
 };
 
-template <typename MatT, size_t K>
-struct SubMatrixKD<MatT, 1, K> : std::span<detail::get_value_t<MatT>> {
+template <typename MatT>
+struct SubMatrixKD<MatT, 1> : std::span<detail::get_value_t<MatT>> {
     using value_type = detail::get_value_t<MatT>;
     using base       = std::span<value_type>;
 
     using base::base;
-    SubMatrixKD(MatT& c_mat, size_t c_offset, size_t /*rem_size*/)
-        : base(c_mat.data() + c_offset, c_mat.sizes.back()){};
 
-    decl_auto operator[](size_t i) {
+    constexpr SubMatrixKD(MatT& c_mat, size_t c_offset, size_t /*rem_size*/)
+        : base(c_mat.data() + c_offset, c_mat.sizes[MatT::dimensions - 1]){};
+
+    constexpr decl_auto operator[](size_t i) {
         assert(i <= base::size());
         return base::operator[](i);
     }
 
-    decl_auto operator[](size_t i) const {
+    constexpr decl_auto operator[](size_t i) const {
         assert(i <= base::size());
         return base::operator[](i);
     }
 };
 
+///////////// TESTS ////////////////
+#ifdef COMP_TESTS
+namespace test {
+    CAV_PASS(std::is_empty_v<MatrixKD<int, 0>>);
+    CAV_PASS(sizeof(MatrixKD<int, 1>) == 24);
+    CAV_PASS(sizeof(MatrixKD<int, 2>) == 32);
+    CAV_PASS(sizeof(MatrixKD<int, 3>) == 40);
+    CAV_PASS(sizeof(MatrixKD<int, 4>) == 48);
+
+    CAV_BLOCK_PASS({
+        auto mat = MatrixKD<int, 3>{0, 2, 2, 4};
+        for (int c = 0; int& n : mat.data_span())
+            n = c++;
+
+        auto const& cmat = mat;
+        assert(cmat.size() == 2);
+        assert(cmat[0].size() == 2);
+        assert(cmat[0][0].size() == 4);
+        assert(cmat.data_span().size() == 16);
+
+        for (int i = 0; i < cmat.size(); ++i)
+            for (int j = 0; j < cmat[i].size(); ++j)
+                for (int k = 0; k < cmat[i][j].size(); ++k)
+                    assert(cmat[i][j][k] == i * cmat.rem_sizes[0] + j * cmat.rem_sizes[1] + k);
+
+        return true;
+    });
+
+    CAV_BLOCK_FAIL({
+        auto const cmat     = MatrixKD<int, 3>{0, 2, 2, 4};
+        size_t     tot_size = cmat.data_span().size();
+        for (int i = 0; i < tot_size; ++i)  // Error, using total size instead of cmat.size()
+            for (int j = 0; j < cmat[i].size(); ++j)
+                for (int k = 0; k < cmat[i][j].size(); ++k)
+                    assert(cmat[i][j][k] == 0);  // This is ok
+    });
+
+    CAV_BLOCK_FAIL({
+        auto const cmat     = MatrixKD<int, 3>{0, 2, 2, 4};
+        size_t     tot_size = cmat.data_span().size();
+        for (int i = 0; i < cmat.size(); ++i)
+            for (int j = 0; j < cmat[i].size(); ++j)
+                for (int k = 0; k < cmat[i][j].size(); ++k)
+                    // Error, it has not been initialized in this way
+                    assert(cmat[i][j][k] == i * cmat.rem_sizes[0] + j * cmat.rem_sizes[1] + k);
+    });
+
+    using mat0_t              = MatrixKD<int, 0>;
+    static constexpr auto mat = mat0_t{};
+    CAV_PASS(mat0_t::size() == 0);
+    CAV_PASS(mat0_t::data_span().empty());
+    CAV_PASS(mat0_t::data() == nullptr);
+}  // namespace test
+#endif
+
 }  // namespace cav
 
 
-#endif /* CAV_INCLUDE_UTILS_MATRIXKD_HPP */
+#endif /* CAV_INCLUDE_MATRIXKD_HPP */

@@ -63,7 +63,7 @@ template <std::integral T1, std::integral T2>
     return i1 == type_min<int_type> && i2 == -1;
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(check_overflow_sum(1 << 30, 1 << 30));
     static_assert(!check_overflow_sum(1 << 30, 1 << 29));
@@ -282,7 +282,7 @@ constexpr auto ilog10(T val) {
     return result;
 };
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(ilog10(9) == 0);
     static_assert(ilog10(10) == 1);
@@ -309,7 +309,7 @@ template <std::integral T>
     return low;
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(isqrt(1ULL << 62ULL) == (1ULL << 31ULL));
     static_assert(isqrt(~0ULL) == (~0U));
@@ -392,7 +392,7 @@ template <auto Default>
     return (detail::identity(FWD(args)), ...);
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(first_elem(1, 2, 3) == 1);
     static_assert(first_elem(1.0, 2U, 3.3F, 5LLU) == 1.0);

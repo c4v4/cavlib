@@ -81,7 +81,7 @@ concept inst_of = is_inst_of_v<no_cvr<U>, Tmpl>;
 template <class U, template <class...> class Tmpl>
 concept not_inst_of = (!inst_of<U, Tmpl>);
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     template <typename...>
     struct S {};

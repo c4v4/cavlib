@@ -163,7 +163,7 @@ requires requires(ST1 s1, ST2 s2) {
     return str_concat(StaticStr(FWD(s1)), StaticStr(FWD(s2)));
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static constexpr auto stra   = StaticStr{"a"};
     static constexpr char strb[] = "b";
@@ -197,7 +197,7 @@ template <std::integral auto Val>
     return result;
 }
 
-#ifndef NDEBUG
+#ifdef COMP_TESTS
 namespace test {
     static_assert(int_to_const_str<12345>()[0] == '1');
     static_assert(int_to_const_str<12345>()[1] == '2');

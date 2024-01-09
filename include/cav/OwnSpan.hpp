@@ -25,9 +25,16 @@
 
 namespace cav {
 
+template <typename T>
+struct ArrayDel {
+    constexpr void operator()(T ptr[]) const noexcept {
+        delete[] ptr;
+    }
+};
+
 /// @brief Like std::span but it owns the underlying pointer and frees the memory on destruction
 /// @tparam T
-template <typename T, class Deleter = decltype([](T ptr[]) { delete[] ptr; })>
+template <typename T, class Deleter = ArrayDel<T>>
 class OwnSpan {
 public:
     using self            = OwnSpan;
@@ -228,4 +235,4 @@ namespace test {
 
 }  // namespace cav
 
-#endif /* CAV_BOUND_OWNSPAN_HPP */
+#endif /* CAV_BUILD_DEPS_CAV_SRC_INCLUDE_CAV_OWNSPAN_HPP */

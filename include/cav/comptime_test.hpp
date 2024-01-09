@@ -50,6 +50,9 @@ constexpr bool expr_fails(...) {
         return true;        \
     }());
 
+#if defined(COMP_TESTS) && defined(NDEBUG)
+#undef COMP_TESTS  // Only in debug otherwise asserts are disabled and some tests might break
+#endif
 
 #ifdef COMP_TESTS
 ////////////////////////////////////////////////////////////////////////////////////////////////////

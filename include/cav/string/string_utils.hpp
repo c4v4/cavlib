@@ -22,7 +22,7 @@
 #include <string_view>
 #include <vector>
 
-#include "type_name.hpp"
+#include "../comptime/type_name.hpp"
 
 #if __has_include(<fmt/core.h>)
 #define CAV_FOUND_FMT

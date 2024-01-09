@@ -16,8 +16,8 @@
 #ifndef CAV_INCLUDE_RAII_ADAPTER_HPP
 #define CAV_INCLUDE_RAII_ADAPTER_HPP
 
-#include "comptime_test.hpp"
-#include "syntactic_sugars.hpp"
+#include "../comptime/syntactic_sugars.hpp"
+#include "../comptime/test.hpp"
 
 namespace cav {
 

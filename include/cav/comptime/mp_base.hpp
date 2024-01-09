@@ -20,7 +20,7 @@
 #include <concepts>
 #include <type_traits>
 
-#include "syntactic_sugars.hpp"  //
+#include "../comptime/syntactic_sugars.hpp"
 
 namespace cav {
 

@@ -20,9 +20,9 @@
 #include <cassert>
 #include <string_view>
 
-#include "comptime_test.hpp"   //
-#include "mp_base.hpp"         //
-#include "util_functions.hpp"  //
+#include "../comptime/mp_base.hpp"
+#include "../comptime/test.hpp"
+#include "../mish/util_functions.hpp"
 
 namespace cav {
 

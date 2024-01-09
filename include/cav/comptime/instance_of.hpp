@@ -12,13 +12,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_INSTANCE_OF_HPP
-#define CAV_INCLUDE_INSTANCE_OF_HPP
+#ifndef CAV_INCLUDE_INST_OF_HPP
+#define CAV_INCLUDE_INST_OF_HPP
 
 #include <type_traits>
 
-#include "comptime_test.hpp"
-#include "syntactic_sugars.hpp"  // IWYU pragma: keep # no_cvr, if_t
+#include "../comptime/syntactic_sugars.hpp"
+#include "../comptime/test.hpp"
 
 /// @brief Currently, there is no general way to constrain a type to be an instantiation of a given
 /// template. All the alternatives I have found so far have some limitations.
@@ -115,4 +115,4 @@ namespace test {
 
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_INSTANCE_OF_HPP */
+#endif /* CAV_INCLUDE_INST_OF_HPP */

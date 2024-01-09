@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_COMPTIME_TEST_HPP
-#define CAV_INCLUDE_COMPTIME_TEST_HPP
+#ifndef CAV_INCLUDE_TEST_HPP
+#define CAV_INCLUDE_TEST_HPP
 
 /// @brief Return true (i.e., expression fails) if "E{}()" evaluates to false or if it is not a
 /// costant expression. Adapted from https://stackoverflow.com/a/55290363

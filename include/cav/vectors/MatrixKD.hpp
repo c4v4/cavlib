@@ -25,11 +25,11 @@
 #include <span>
 #include <type_traits>
 
-#include "OwnSpan.hpp"
-#include "comptime_test.hpp"
-#include "mp_base.hpp"
-#include "syntactic_sugars.hpp"
-#include "util_functions.hpp"
+#include "../comptime/mp_base.hpp"
+#include "../comptime/syntactic_sugars.hpp"
+#include "../comptime/test.hpp"
+#include "../mish/util_functions.hpp"
+#include "../vectors/OwnSpan.hpp"
 
 namespace cav {
 

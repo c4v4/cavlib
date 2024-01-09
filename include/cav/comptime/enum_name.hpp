@@ -22,8 +22,8 @@
 #include <string_view>
 #include <type_traits>
 
-#include "StaticStr.hpp"
-#include "type_name.hpp"
+#include "../comptime/type_name.hpp"
+#include "../string/StaticStr.hpp"
 
 namespace cav {
 

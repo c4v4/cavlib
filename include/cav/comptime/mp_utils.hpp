@@ -16,10 +16,9 @@
 #ifndef CAV_INCLUDE_MP_UTILS_HPP
 #define CAV_INCLUDE_MP_UTILS_HPP
 
-#include "comptime_test.hpp"
-#include "instance_of.hpp"       // IWYU pragma: export
-#include "mp_base.hpp"           //
-#include "syntactic_sugars.hpp"  //
+#include "../comptime/mp_base.hpp"
+#include "../comptime/syntactic_sugars.hpp"
+#include "../comptime/test.hpp"
 
 namespace cav {
 

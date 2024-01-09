@@ -22,15 +22,10 @@
 #include <cstdint>
 #include <span>
 
-#include "limits.hpp"            //
-#include "macros.hpp"            //
-#include "mp_utils.hpp"          //
-#include "syntactic_sugars.hpp"  //
-
-#if __has_include(<fmt/core.h>)
-#define CAV_FOUND_FMT
-#include <fmt/core.h>
-#endif
+#include "../comptime/macros.hpp"
+#include "../comptime/mp_utils.hpp"
+#include "../comptime/syntactic_sugars.hpp"
+#include "../numeric/limits.hpp"
 
 namespace cav {
 
@@ -102,8 +97,7 @@ template <typename T>
 }
 
 [[nodiscard]] CAV_PURE constexpr auto max(auto const& v1, auto const& v2) noexcept {
-    using type = TYPEOF(v1);
-    return v1 > v2 ? v1 : static_cast<type>(v2);
+    return v1 > v2 ? v1 : static_cast<TYPEOF(v1)>(v2);
 }
 
 /// @brief Compute the square of a given number;
@@ -411,17 +405,6 @@ namespace test {
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c)), int const&>);
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c, d, e, f)), float const&>);
 }  // namespace test
-#endif
-
-#ifdef CAV_FOUND_FMT
-template <typename... Ts>
-[[noreturn]] void exit_with_message(::fmt::format_string<Ts...> fmt, Ts&&... args) {
-    std::fflush(stdout);
-    fmt::print(stderr, fmt, FWD(args)...);
-    std::fflush(stderr);
-    assert(!"Debug mode: syntetic fail to pause before exit.");
-    exit(EXIT_FAILURE);
-}
 #endif
 
 }  // namespace cav

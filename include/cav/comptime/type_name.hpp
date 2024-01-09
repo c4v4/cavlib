@@ -20,7 +20,7 @@
 #include <source_location>
 #include <string_view>
 
-#include "StaticStr.hpp"  //
+#include "../string/StaticStr.hpp"  //
 
 // The old way
 // #if defined(__clang__) || defined(__GNUC__)

@@ -20,10 +20,10 @@
 #include <cmath>
 #include <limits>
 
-#include "XoshiroCpp.hpp"  //
-#include "macros.hpp"
-#include "mp_base.hpp"
-#include "util_functions.hpp"
+#include "../comptime/macros.hpp"
+#include "../comptime/mp_base.hpp"
+#include "../mish/util_functions.hpp"
+#include "../numeric/XoshiroCpp.hpp"
 
 namespace cav {
 

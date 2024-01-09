@@ -20,8 +20,8 @@
 #include <memory>
 #include <type_traits>
 
-#include "comptime_test.hpp"
-#include "syntactic_sugars.hpp"
+#include "../comptime/syntactic_sugars.hpp"
+#include "../comptime/test.hpp"
 
 namespace cav {
 
@@ -235,4 +235,4 @@ namespace test {
 
 }  // namespace cav
 
-#endif /* CAV_BUILD_DEPS_CAV_SRC_INCLUDE_CAV_OWNSPAN_HPP */
+#endif /* CAV_BOUND_OWNSPAN_HPP */

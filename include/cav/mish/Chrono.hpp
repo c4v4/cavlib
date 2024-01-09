@@ -21,7 +21,7 @@
 
 #include <chrono>
 
-#include "comptime_test.hpp"
+#include "../comptime/test.hpp"
 
 namespace cav {
 

@@ -34,8 +34,6 @@ namespace cav {
 /// complexity for something that, in the end, has the same role of "auto".
 #define decl_auto decltype(auto)
 
-#define NOP [](auto&&...) {}
-
 #define UNIQUE_TYPE decltype([] {})
 
 #define REQUIRES_FN(...) \
@@ -44,6 +42,8 @@ namespace cav {
     }
 
 #define REQUIRES_TYPE(...) requires { typename __VA_ARGS__; }
+
+constexpr auto nop = [](auto&&...) {};
 
 /// @brief Shorthand for std::remove_cvref_t<T>;
 template <typename T>

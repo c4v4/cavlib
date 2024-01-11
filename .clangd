@@ -86,6 +86,14 @@ Diagnostics:
             cppcoreguidelines-avoid-do-while, # ????
 
             cppcoreguidelines-macro-usage, # Sometimes it's just the best way to do it
+
+            cppcoreguidelines-pro-bounds-constant-array-index, # C for loops are still a thing
+
+            google-explicit-constructor, # In library code I use it often for abstractions
+            hicpp-explicit-conversions,
+
+            cppcoreguidelines-avoid-const-or-ref-data-members, # I understand the rationale, but for some 
+                                                               # short-lived abstractions I use it quite often
             ]
             
 InlayHints:

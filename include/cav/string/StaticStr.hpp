@@ -24,6 +24,11 @@
 #include "../comptime/test.hpp"
 #include "../mish/util_functions.hpp"
 
+#if __has_include(<fmt/core.h>)
+#define CAV_FOUND_FMT
+#include <fmt/core.h>
+#endif
+
 namespace cav {
 
 /// @brief String literal made to be easily converted to other compile-time sized char containers

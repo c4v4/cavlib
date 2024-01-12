@@ -72,6 +72,9 @@ struct value_wrap<T> {
     }
 };
 
+template <typename T>
+value_wrap(T val) -> value_wrap<T>;
+
 // And for compile-time c arrays
 template <typename T, auto N>
 struct value_wrap<T[N]> {
@@ -107,6 +110,15 @@ struct ct {
 
 template <value_wrap X>
 static constexpr auto ct_v = ct<X>{};
+
+template <char... Cs>
+[[nodiscard]] constexpr auto operator""_ct() {
+    constexpr int num = [] {
+        int n = 0;
+        return ((n = n * 10 + (Cs - '0')), ..., n);
+    }();
+    return ct_v<num>;
+}
 
 /// @brief Simple struct that inherits from all its template parameters
 template <typename... Ts>

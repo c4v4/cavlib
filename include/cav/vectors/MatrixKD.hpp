@@ -168,7 +168,7 @@ struct SubMatrixKD {
 };
 
 ///////////// TESTS ////////////////
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(sizeof(MatrixKD<int, 1>) == 24);
     CAV_PASS(sizeof(MatrixKD<int, 2>) == 32);

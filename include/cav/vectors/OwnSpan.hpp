@@ -198,7 +198,7 @@ private:
 template <std::integral S, typename T>
 OwnSpan(S, T) -> OwnSpan<T>;
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
 
     static constexpr int  buff[8] = {0, 1, 2, 3, 4, 5, 6, 7};

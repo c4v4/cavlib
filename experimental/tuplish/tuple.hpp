@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Francesco Cavaliere
+// Copyright (c) 2024 Francesco Cavaliere
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -7,412 +7,168 @@
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifdef CAV_INCLUDE_UTILS_TUPLE_HPP
-#define CAV_INCLUDE_UTILS_TUPLE_HPP
+#ifndef CAV_EXPERIMENTAL_TUPLISH_TUPLE_HPP
+#define CAV_EXPERIMENTAL_TUPLISH_TUPLE_HPP
 
-#include <fmt/core.h>
+#include <bits/utility.h>
 
-#include <utility>
+#include <type_traits>
 
-#include "External/tuplet/tuple.hpp"  //
-#include "instance_of.hpp"      // IWYU pragma: keep # inst_of
-#include "util_functions.hpp"   //
+#include "../../include/cav/comptime/mp_base.hpp"
+#include "../../include/cav/comptime/syntactic_sugars.hpp"
+#include "../../include/cav/comptime/type_name.hpp"
 
 namespace cav {
-template <typename... Args>
-struct tuple;
 
-template <template <class...> class WrapTup, template <class...> class BaseTup, typename... Args>
-constexpr auto tup_base_to_wrapper(BaseTup<Args...>&& t) {
-    return WrapTup<Args...>{std::move(t)};
-}
+template <typename>
+struct tag_type {};
 
-template <template <class...> class WrapTup, template <class...> class BaseTup, typename... Args>
-constexpr auto tup_base_to_wrapper(BaseTup<Args...> const& t) {
-    return WrapTup<Args...>{t};
-}
+template <typename T>
+constexpr auto tag = tag_type<T>{};
 
-template <typename... TupTs>
-requires(inst_of<TupTs, tuple> && ...)
-constexpr auto tuple_cat(TupTs&&... args) {
-    return tup_base_to_wrapper<tuple>(tuplet::tuple_cat(FWD(args)...));
-}
+////////////////////////////////////////////////////////////////////////
+/////////////////////////////// TYPE MAP ///////////////////////////////
+////////////////////////////////////////////////////////////////////////
 
-template <typename... Args>
-constexpr auto make_tuple(Args&&... args) {
-    return tuple<no_cvr<Args>...>{FWD(args)...};
-}
+template <typename K, typename V>
+struct map_elem {
+    [[no_unique_address]] V value;
 
-// Proxy for tuple, I'll probably try other tuple implementations at some point
-// Note: not an alias otherwise operator+= should be declared at global scope
-template <typename... Args>
-struct tuple : tuplet::tuple<Args...> {
-    using base = tuplet::tuple<Args...>;
-
-    // Side-effects only, apply lambda to each element
-    using base::for_each;
-
-    // Apply lambda to each element and return another tuple
-    auto transform(auto&& lambda) & {
-        return reduce([&](auto&... elems) { return ::cav::make_tuple(FWD(lambda)(elems)...); });
+    [[nodiscard]] constexpr V const& operator[](tag_type<K> /*k*/) const {
+        return value;
     }
 
-    auto transform(auto&& lambda) const& {
-        return reduce(
-            [&](auto const&... elems) { return ::cav::make_tuple(FWD(lambda)(elems)...); });
+    [[nodiscard]] constexpr V& operator[](tag_type<K> /*k*/) {
+        return value;
     }
 
-    auto transform(auto&& lambda) && {
-        return reduce(
-            [&](auto&&... elems) { return ::cav::make_tuple(FWD(lambda)(FWD(elems))...); });
+    [[nodiscard]] constexpr V const& operator[](ct<type_name<K>::name> /*k*/) const {
+        return value;
     }
 
-    // Apply lambda to each element and return an array. Lambda must return always the same type
-    auto transform_to_array(auto&& lambda) & {
-        return reduce([&](auto&... elem) { return std::array{FWD(lambda)(elem)...}; });
+    [[nodiscard]] constexpr V& operator[](ct<type_name<K>::name> /*k*/) {
+        return value;
     }
-
-    auto transform_to_array(auto&& lambda) const& {
-        return reduce([&](auto const&... elem) { return std::array{FWD(lambda)(elem)...}; });
-    }
-
-    auto transform_to_array(auto&& lambda) && {
-        return reduce([&](auto&&... elem) { return std::array{FWD(lambda)(FWD(elem))...}; });
-    }
-
-    // As transform, but the lambda receive all the elements of the tuple as a pack
-    auto reduce(auto&& lambda) & {
-        return tuplet::apply(FWD(lambda), *this);
-    }
-
-    auto reduce(auto&& lambda) const& {
-        return tuplet::apply(FWD(lambda), *this);
-    }
-
-    auto reduce(auto&& lambda) && {
-        return tuplet::apply(FWD(lambda), std::move(*this));
-    }
-
-    [[nodiscard]] auto& first() {
-        return get<0>(*this);
-    }
-
-    [[nodiscard]] auto const& first() const {
-        return get<0>(*this);
-    }
-
-    [[nodiscard]] auto& last() {
-        return get<size() - 1>(*this);
-    }
-
-    [[nodiscard]] auto const& last() const {
-        return get<size() - 1>(*this);
-    }
-
-    [[nodiscard]] static constexpr int size() {
-        return sizeof...(Args);
-    }
-
-    [[nodiscard]] static constexpr bool empty() {
-        return size() == 0;
-    }
-};
-
-template <typename... Args>
-tuple(Args&&...) -> tuple<no_cvr<Args>...>;
-
-/// @brief Concatenate tuples into a single tuple
-template <typename... Tuples>
-struct cat_tuple {
-    using type = TYPEOF(tuple_cat(::std::declval<Tuples>()...));
-};
-
-template <typename... Tuples>
-using cat_tuple_t = typename cat_tuple<Tuples...>::type;
-
-/// @brief Permute tuple elements following indexes parameter pack.
-///
-/// @tparam TupT
-/// @tparam indexes
-template <typename TupT, int... Ids>
-struct tuple_permute {
-    static_assert(!(sizeof...(Ids) < std::tuple_size<TupT>{}),
-                  "Too few permutation indexes have been provided.");
-    static_assert(!(sizeof...(Ids) > std::tuple_size<TupT>{}),
-                  "Too many permutation indexes have been provided.");
-
-    using type = tuple<std::tuple_element_t<Ids, TupT>...>;
-};
-
-template <typename TupT, int... Ids>
-using tuple_permute_t = typename tuple_permute<TupT, Ids...>::type;
-
-
-/// @brief Return a tuple containing the types of the
-/// parameter pack but the void elements.
-///
-template <typename... Ts>
-struct make_tuple_no_void_helper;
-
-template <typename... Ts1>
-struct make_tuple_no_void_helper<tuple<Ts1...>> {
-    using type = tuple<Ts1...>;
-};
-
-template <typename... Ts1, typename T, typename... Ts2>
-struct make_tuple_no_void_helper<tuple<Ts1...>, T, Ts2...> {
-    using type = typename make_tuple_no_void_helper<tuple<Ts1..., T>, Ts2...>::type;
-};
-
-template <typename... Ts1, typename... Ts2>
-struct make_tuple_no_void_helper<tuple<Ts1...>, void, Ts2...> {
-    using type = typename make_tuple_no_void_helper<tuple<Ts1...>, Ts2...>::type;
 };
 
 template <typename... Ts>
-struct make_tuple_no_void {
-    using type = typename make_tuple_no_void_helper<tuple<>, Ts...>::type;
+struct type_map : Ts... {
+    using Ts::operator[]...;
+
+    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const {
+        return FWD(fn)(Ts::value...);
+    }
+
+    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) {
+        return FWD(fn)(Ts::value...);
+    }
+
+    constexpr void for_each(auto&& fn) const {
+        (void)(FWD(fn)(Ts::value), ...);
+    }
+
+    constexpr void for_each(auto&& fn) {
+        (void)(FWD(fn)(Ts::value), ...);
+    }
 };
 
+#ifdef CAV_COMP_TESTS
+namespace test {
+    static constexpr auto tm1 = type_map<map_elem<int, int>, map_elem<ct<2>, float>>{1, 2.0};
+    static constexpr auto tm2 = type_map<map_elem<ct<5>, int>, map_elem<float, float[10]>>{3, {}};
+    static constexpr auto tm3 = type_map<map_elem<int, int>>{4};
+    static constexpr auto tm4 = type_map<>{};
+
+    CAV_PASS(sizeof(tm1) == 8);
+    CAV_PASS(sizeof(tm2) == 44);
+    CAV_PASS(sizeof(tm3) == 4);
+    CAV_PASS(sizeof(tm4) == 1);
+    CAV_PASS(tm1["int"_cs] == 1);
+    CAV_PASS(tm1[tag<ct<2>>] == 2.0);
+    CAV_PASS(tm2[tag<float>][9] == 0);
+    CAV_PASS(tm3[tag<int>] == 4);
+}  // namespace test
+#endif
+
+////////////////////////////////////////////////////////////////////////
+/////////////////////////////// TYPE SET ///////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
 template <typename... Ts>
-using make_tuple_no_void_t = typename make_tuple_no_void<Ts...>::type;
+struct type_set : type_map<map_elem<Ts, Ts>...> {};
+
+#ifdef CAV_COMP_TESTS
+namespace test {
+    static constexpr auto ts1 = type_set<int, float>{1, 2.0};
+    static constexpr auto ts2 = type_set<int, float[10]>{3, {}};
+    static constexpr auto ts3 = type_set<int>{4};
+    static constexpr auto ts4 = type_set<>{};
+
+    CAV_PASS(sizeof(ts1) == 8);
+    CAV_PASS(sizeof(ts2) == 44);
+    CAV_PASS(sizeof(ts3) == 4);
+    CAV_PASS(sizeof(ts4) == 1);
+    CAV_PASS(ts1["int"_cs] == 1);
+    CAV_PASS(ts1[tag<float>] == 2.0);
+    CAV_PASS(ts2[tag<float[10]>][9] == 0);
+    CAV_PASS(ts3[tag<int>] == 4);
+}  // namespace test
+#endif
+
+/////////////////////////////////////////////////////////////////////////
+///////////////////////////////// TUPLE /////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+template <int I, typename V>
+struct tuple_elem {
+    [[no_unique_address]] V value;
+
+    [[nodiscard]] constexpr V const& operator[](ct<I> /*k*/) const {
+        return value;
+    }
+
+    [[nodiscard]] constexpr V& operator[](ct<I> /*k*/) {
+        return value;
+    }
+};
 
 namespace detail {
-    template <size_t Id, typename TupT>
-    requires(Id >= no_cvr<TupT>::size())  // Define the undef behaviour -> visit last
-    [[nodiscard]] constexpr auto visit_idx_helper(TupT&& tup, size_t /*idx*/, auto&& lambda) {
-        return FWD(lambda)(::tuplet::get<no_cvr<TupT>::size() - 1>(FWD(tup)));
-    }
+    template <typename... Ts>
+    struct make_tuple_map : make_tuple_map<std::index_sequence_for<Ts...>, Ts...> {};
 
-    template <size_t Id, typename TupT>
-    requires(Id < no_cvr<TupT>::size())
-    [[nodiscard]] constexpr auto visit_idx_helper(TupT&& tup, size_t idx, auto&& lambda) {
-        if (Id < idx)
-            return visit_idx_helper<Id + 1>(FWD(tup), idx, FWD(lambda));
-        assert(Id == idx);
-        return FWD(lambda)(::tuplet::get<Id>(FWD(tup)));
-    }
+    template <std::size_t... Is, typename... Ts>
+    struct make_tuple_map<std::index_sequence<Is...>, Ts...> {
+        using type = type_map<tuple_elem<Is, Ts>...>;
+    };
 }  // namespace detail
 
 template <typename... Ts>
-[[nodiscard]] constexpr auto visit_idx(tuple<Ts...>& tup, size_t idx, auto&& lambda) {
-    assert(idx < sizeof...(Ts) && "Index out of tuple bound.");
-    return detail::visit_idx_helper<0>(tup, idx, FWD(lambda));
-}
+struct tuple : detail::make_tuple_map<Ts...>::type {};
 
-template <typename... Ts>
-[[nodiscard]] constexpr auto visit_idx(tuple<Ts...> const& tup, size_t idx, auto&& lambda) {
-    assert(idx < sizeof...(Ts) && "Index out of tuple bound.");
-    return detail::visit_idx_helper<0>(tup, idx, FWD(lambda));
-}
+#ifdef CAV_COMP_TESTS
+namespace test {
+    static constexpr auto tp1 = tuple<int, float>{1, 2.0};
+    static constexpr auto tp2 = tuple<int, float[10]>{3, {}};
+    static constexpr auto tp3 = tuple<int>{4};
+    static constexpr auto tp4 = tuple<>{};
 
-/// @brief Element wise op
-template <typename... Args>
-tuple<Args...> elem_wise_op(tuple<Args...> const& t1, tuple<Args...> const& t2, auto&& lambda) {
-    return [&]<std::size_t... Is>(std::index_sequence<Is...> /*is*/) {
-        return tuple<Args...>{FWD(lambda)(get<Is>(t1), get<Is>(t2))...};
-    }(std::index_sequence_for<Args...>());
-}
-
-template <typename... Args>
-tuple<Args...>& elem_wise_inplace_op(tuple<Args...>& t1, tuple<Args...> const& t2, auto&& lambda) {
-    [&]<std::size_t... Is>(std::index_sequence<Is...> /*is*/) {
-        (FWD(lambda)(get<Is>(t1), get<Is>(t2)), ...);
-    }(std::index_sequence_for<Args...>());
-    return t1;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////// Element wise mathematical operations for tuple pairs ///////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <typename... Args>
-tuple<Args...> operator+(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, std::plus<>{});
-}
-
-template <typename... Args>
-tuple<Args...>& operator+=(tuple<Args...>& t1, tuple<Args...> const& t2) {
-    return elem_wise_inplace_op(t1, t2, [](auto& v1, auto const& v2) { return v1 += v2; });
-}
-
-template <typename... Args>
-tuple<Args...> operator-(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, std::minus<>{});
-}
-
-template <typename... Args>
-tuple<Args...>& operator-=(tuple<Args...>& t1, tuple<Args...> const& t2) {
-    return elem_wise_inplace_op(t1, t2, [](auto& v1, auto const& v2) { return v1 -= v2; });
-}
-
-template <typename... Args>
-tuple<Args...> operator*(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, std::multiplies<>{});
-}
-
-template <typename... Args>
-tuple<Args...>& operator*=(tuple<Args...>& t1, tuple<Args...> const& t2) {
-    return elem_wise_inplace_op(t1, t2, [](auto& v1, auto const& v2) { return v1 *= v2; });
-}
-
-template <typename... Args>
-tuple<Args...> operator/(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, std::divides<>{});
-}
-
-template <typename... Args>
-tuple<Args...>& operator/=(tuple<Args...>& t1, tuple<Args...> const& t2) {
-    return elem_wise_inplace_op(t1, t2, [](auto& v1, auto const& v2) { return v1 /= v2; });
-}
-
-// Specialization for tuples
-template <typename... Args>
-tuple<Args...> max(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, [](auto const& v1, auto const& v2) { return std::max(v1, v2); });
-}
-
-template <typename... Args>
-tuple<Args...> min(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, [](auto const& v1, auto const& v2) { return std::min(v1, v2); });
-}
-
-template <typename... Args>
-tuple<Args...> abs(tuple<Args...> const& t1) {
-    return t1.transform([&]<class T>(T const& elem) -> T { return abs(elem); });
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////// Element wise mathematical operations between tuples and scalars //////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <typename... Args>
-tuple<Args...> operator+(tuple<Args...> const& t1, arithmetic auto const& val) {
-    return t1.transform([&]<class T>(T const& elem) -> T { return elem + val; });
-}
-
-template <typename... Args>
-tuple<Args...>& operator+=(tuple<Args...>& t1, arithmetic auto const& val) {
-    t1.for_each([&](auto& elem) { return elem += val; });
-    return t1;
-}
-
-/// @brief Element wise subtraction for tuples
-template <typename... Args>
-tuple<Args...> operator-(tuple<Args...> const& t1, arithmetic auto const& val) {
-    return t1.transform([&]<class T>(T const& elem) -> T { return elem - val; });
-}
-
-template <typename... Args>
-tuple<Args...>& operator-=(tuple<Args...>& t1, arithmetic auto const& val) {
-    t1.for_each([&](auto& elem) { return elem -= val; });
-    return t1;
-}
-
-/// @brief Element wise product for tuples
-template <typename... Args>
-tuple<Args...> operator*(tuple<Args...> const& t1, arithmetic auto const& val) {
-    return t1.transform([&]<class T>(T const& elem) -> T { return elem * val; });
-}
-
-template <typename... Args>
-tuple<Args...>& operator*=(tuple<Args...>& t1, arithmetic auto const& val) {
-    t1.for_each([&](auto& elem) { return elem *= val; });
-    return t1;
-}
-
-/// @brief Element wise division for tuples
-template <typename... Args>
-tuple<Args...> operator/(tuple<Args...> const& t1, arithmetic auto const& val) {
-    return t1.transform([&]<class T>(T const& elem) -> T { return elem * val; });
-}
-
-template <typename... Args>
-tuple<Args...>& operator/=(tuple<Args...>& t1, arithmetic auto const& val) {
-    t1.for_each([&](auto& elem) { return elem /= val; });
-    return t1;
-}
-
-/// @brief Element wise power for tuples
-template <typename... Args>
-tuple<Args...> pow(tuple<Args...> const& t, double exp) {
-    return t.transform([&]<class T>(T const& elem) -> T { return pow(elem, exp); });
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////// UTILITIES /////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <not_inst_of<tuple> T>
-constexpr auto tuple_merge_into(T&& t1, auto&&... ts);
-
-template <typename TupT>
-requires inst_of<TupT, tuple>
-constexpr TupT&& tuple_merge_into(TupT&& tup) {
-    return FWD(tup);
-}
-
-template <not_inst_of<tuple> T>
-constexpr auto tuple_merge_into(T&& t) {
-    return cav::make_tuple(FWD(t));
-}
-
-template <typename TupT>
-requires inst_of<TupT, tuple>
-constexpr auto tuple_merge_into(TupT&& tup1, auto&&... ts) {
-    return cav::tuple_cat(FWD(tup1), tuple_merge_into(FWD(ts)...));
-}
-
-template <not_inst_of<tuple> T>
-constexpr auto tuple_merge_into(T&& t1, auto&&... ts) {
-    return cav::tuple_cat(cav::make_tuple(FWD(t1)), tuple_merge_into(FWD(ts)...));
-}
-
-template <typename... Ts>
-struct merge_into_tuple {
-    using type = TYPEOF(tuple_merge_into(std::declval<Ts>()...));
-};
-
-template <typename... Ts>
-using merge_into_tuple_t = typename merge_into_tuple<Ts...>::type;
-
-static_assert(std::is_same_v<tuple<int, double>, TYPEOF(tuple_merge_into(1, 3.0))>);
-static_assert(std::is_same_v<tuple<int, float, double>,
-                             TYPEOF(tuple_merge_into(1, cav::make_tuple(3.1F, 3.4)))>);
-static_assert(std::is_same_v<tuple<int64_t, double, long double>,
-                             TYPEOF(tuple_merge_into(cav::make_tuple(3L, 3.3), 3.4L))>);
-static_assert(
-    std::is_same_v<tuple<int64_t, double, float, double>,
-                   TYPEOF(tuple_merge_into(cav::make_tuple(3L, 3.3), cav::make_tuple(3.1F, 3.4)))>);
-
-template <typename Tup, template <class...> class FtorT>
-struct for_each_type;
-
-template <typename... TupTs, template <class...> class FtorT>
-struct for_each_type<tuple<TupTs...>, FtorT> {
-    using type                  = typename FtorT<TupTs...>::type;
-    static constexpr auto value = FtorT<TupTs...>::value;
-};
+    CAV_PASS(sizeof(tp1) == 8);
+    CAV_PASS(sizeof(tp2) == 44);
+    CAV_PASS(sizeof(tp3) == 4);
+    CAV_PASS(sizeof(tp4) == 1);
+    CAV_PASS(tp1[0_ct] == 1);
+    CAV_PASS(tp1[ct_v<1>] == 2.0);
+    CAV_PASS(tp2[1_ct][9] == 0);
+    CAV_PASS(tp3[ct_v<int{}>] == 4);
+}  // namespace test
+#endif
 
 }  // namespace cav
 
-namespace std {
-template <class... T>
-struct tuple_size<cav::tuple<T...>> : std::integral_constant<size_t, sizeof...(T)> {};
-
-template <size_t I, class... T>
-struct tuple_element<I, cav::tuple<T...>> {
-    using type = TYPEOF(tuplet::get<I>(std::declval<cav::tuple<T...>>()));
-};
-
-template <size_t I, typename TupT>
-using tuple_element_t = typename tuple_element<I, TupT>::type;
-}  // namespace std
-
-#endif /* CAV_INCLUDE_UTILS_TUPLE_HPP */
+#endif /* CAV_EXPERIMENTAL_TUPLISH_TUPLE_HPP */

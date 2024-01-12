@@ -81,7 +81,7 @@ struct Chrono {
     }
 };
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(Chrono<nsec>::template time_cast<usec>(1) == 1e-3);
     CAV_PASS(Chrono<usec>::template time_cast<usec>(1) == 1.0);

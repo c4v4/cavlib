@@ -47,7 +47,7 @@ struct RaiiWrap {
 template <typename T, typename DestrT>
 RaiiWrap(T x, DestrT destr) -> RaiiWrap<T, DestrT>;
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_BLOCK_PASS({
         auto ptr = RaiiWrap{new int{42}, [](auto p) { delete p; }};

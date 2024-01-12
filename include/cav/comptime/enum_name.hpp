@@ -70,7 +70,7 @@ namespace detail {
         static constexpr std::string_view name    = cs_name;
     };
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
     namespace test {
         enum class TEST { A, B };
 
@@ -126,7 +126,7 @@ template <auto X>
     return map[idx];
 }
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace detail::test {
     CAV_PASS(enum_name<TEST::A>() == enum_name(TEST::A));
     CAV_PASS(enum_name<TEST::B>() == enum_name(TEST::B));

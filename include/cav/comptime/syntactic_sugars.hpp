@@ -26,7 +26,7 @@ namespace cav {
 /// because perfect forwarding has an horrible syntax that requires the type explicitly. Even worse,
 /// sometime I avoid perfect forwarding even if it would be the correct choice, just because the
 /// small overhead is still preferable to the amount of boilerplate this things adds everywhere.
-#define FWD(X) ::std::forward<decltype(X)>(X)
+#define FWD(X) static_cast<decltype(X)&&>(X)  //::std::forward<decltype(X)>(X)
 
 /// @brief Syntactic sugar to simplify the reading of function signatures. I know, it's a minor
 /// thing that introduces yet another custom-symbol. However, when reading a function signature I

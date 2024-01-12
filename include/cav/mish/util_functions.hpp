@@ -61,7 +61,7 @@ template <std::integral T1, std::integral T2>
     return i1 == type_min<int_type> && i2 == -1;
 }
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(check_overflow_sum(1 << 30, 1 << 30));
     CAV_PASS(!check_overflow_sum(1 << 30, 1 << 29));
@@ -279,7 +279,7 @@ constexpr auto ilog10(T val) {
     return result;
 };
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(ilog10(9) == 0);
     CAV_PASS(ilog10(10) == 1);
@@ -306,7 +306,7 @@ template <std::integral T>
     return low;
 }
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(isqrt(1ULL << 62ULL) == (1ULL << 31ULL));
     CAV_PASS(isqrt(~0ULL) == (~0U));
@@ -380,7 +380,7 @@ template <auto Default>
     return (detail::identity(FWD(args)), ...);
 }
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(first_elem(1, 2, 3) == 1);
     CAV_PASS(first_elem(1.0, 2U, 3.3F, 5LLU) == 1.0);

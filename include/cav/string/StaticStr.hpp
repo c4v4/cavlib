@@ -171,7 +171,7 @@ requires requires(ST1 s1, ST2 s2) {
     return str_concat(StaticStr(FWD(s1)), StaticStr(FWD(s2)));
 }
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     static constexpr auto stra   = StaticStr{"a"};
     static constexpr char strb[] = "b";
@@ -205,7 +205,7 @@ template <std::integral auto Val>
     return result;
 }
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 namespace test {
     CAV_PASS(int_to_const_str<12345>()[0] == '1');
     CAV_PASS(int_to_const_str<12345>()[1] == '2');

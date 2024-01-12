@@ -50,11 +50,11 @@ constexpr bool expr_fails(...) {
         return true;        \
     }());
 
-#if defined(COMP_TESTS) && defined(NDEBUG)
-#undef COMP_TESTS  // Only in debug otherwise asserts are disabled and some tests might break
+#if defined(CAV_COMP_TESTS) && defined(NDEBUG)
+#undef CAV_COMP_TESTS  // Only in debug otherwise asserts are disabled and some tests might break
 #endif
 
-#ifdef COMP_TESTS
+#ifdef CAV_COMP_TESTS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// TEST IF IT WORKS AS EXPECTED ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

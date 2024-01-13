@@ -228,7 +228,7 @@ constexpr cav::ct<Str> operator""_cs() noexcept {
     return {};
 }
 
-CAV_PASS(cav::StaticStr("prova") == "prova"_s);
-CAV_PASS(cav::eq<cav::StaticStr<6>, TYPEOF("prova"_s)>);
+CAV_PASS(cav::StaticStr("test") == "test"_s);
+CAV_PASS(cav::eq<cav::StaticStr<5>, TYPEOF("test"_s)>);
 
 #endif /* CAV_INCLUDE_STATICSTR_HPP */

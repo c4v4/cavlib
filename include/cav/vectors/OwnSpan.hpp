@@ -48,7 +48,7 @@ public:
 
     template <std::integral S, typename U = T, typename... Ts>
     constexpr OwnSpan(S c_size, U const& first = {}, Ts const&... args)
-        : ptr(c_size > 0 ? new T[c_size] : nullptr)
+        : ptr(c_size > 0 ? std::allocator<T>{}.allocate(c_size) : nullptr)
         , sz(c_size) {
         assert(c_size >= 0);
         for (T& val : *this)
@@ -73,7 +73,7 @@ public:
     }
 
     constexpr OwnSpan(OwnSpan const& other)
-        : ptr(other.sz > 0 ? new T[other.sz] : nullptr)
+        : ptr(other.sz > 0 ? std::allocator<T>{}.allocate(other.sz) : nullptr)
         , sz(other.sz) {
         for (size_t i = 0; i < sz; ++i)
             std::construct_at(ptr + i, other[i]);

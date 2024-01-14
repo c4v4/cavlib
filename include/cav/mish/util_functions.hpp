@@ -317,17 +317,17 @@ namespace test {
 /// Simple range stuff
 
 template <typename T>
-constexpr void fill_range(auto& container, T start, T const& step) noexcept {
+constexpr void iota(auto& container, T start, T const& step) noexcept {
     for (size_t i = 0; i < container.size(); ++i) {
         container[i] = start;
         start += step;
     }
 }
 
-template <typename ContT, typename T = int>
-constexpr void make_range(T start, T end, T step = 1) noexcept {
+template <typename ContT, typename T>
+constexpr ContT make_iota(T start, T end, T step = 1) noexcept {
     auto container = ContT((end - start) / step);
-    fill_range(start, step);
+    cav::iota(container, start, step);
     return container;
 }
 

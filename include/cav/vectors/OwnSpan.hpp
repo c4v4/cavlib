@@ -17,24 +17,45 @@
 #define CAV_BOUND_OWNSPAN_HPP
 
 #include <cassert>
+#include <concepts>
 #include <memory>
 #include <type_traits>
 
 #include "../comptime/syntactic_sugars.hpp"
 #include "../comptime/test.hpp"
+#include "cav/comptime/mp_base.hpp"
 
 namespace cav {
 
 template <typename T>
 struct ArrayDel {
-    constexpr void operator()(T ptr[]) const noexcept {
+    constexpr void operator()(T ptr[], size_t /*n*/) const noexcept {
         delete[] ptr;
     }
 };
 
-/// @brief Like std::span but it owns the underlying pointer and frees the memory on destruction
-/// @tparam T
-template <typename T, class Deleter = ArrayDel<T>>
+template <typename T>
+struct AllocatorDel {
+    constexpr void operator()(T ptr[], size_t n) const noexcept {
+        std::destroy(ptr, ptr + n);
+        std::allocator<T>{}.deallocate(ptr, n);
+    }
+};
+
+/// @brief Like std::span but it owns the underlying pointer and frees the memory on destruction.
+///  Uses-defined template-deduction-guides are used to automatically selected ArrayDel (i.e.,
+///  delete[]) when the span is init with a pointer to T.
+///  Otherwise, the dynamically sized array is allocated using std::allocator (I didn't want to
+///  support custom allocators, the main use of this class should be for externally provided arrays,
+///  and having to specify only how to release the memory is much simpler than having to defined a
+///  completelly new allocator).
+///  Finally, there is the pain in the neck of the non-default constructible types. In that case, a
+///  functor is accepted to which the span is provided with the uninitialized memory already
+///  allocated, ready to be "filled". This should allow quite a good deal of freedom.
+///
+/// @tparam T the value type of the span
+/// @tparam Deleter the deleter invocable type, defaults to AllocatorDel<T>
+template <typename T, class Deleter = AllocatorDel<T>>
 class OwnSpan {
 public:
     using self            = OwnSpan;
@@ -46,34 +67,52 @@ public:
 
     constexpr OwnSpan() = default;
 
-    template <std::integral S, typename U = T, typename... Ts>
-    constexpr OwnSpan(S c_size, U const& first = {}, Ts const&... args)
-        : ptr(c_size > 0 ? std::allocator<T>{}.allocate(c_size) : nullptr)
+    constexpr OwnSpan(std::integral auto c_size)
+        : ptr(c_size > 0 ? _default_allocate(c_size) : nullptr)
+        , sz(c_size) {
+        static_assert(std::is_default_constructible_v<T>, "T is not default constructible.");
+        assert(c_size >= 0);
+        for (T& val : *this)
+            std::construct_at(&val);
+    }
+
+    template <typename Fn>
+    requires(std::invocable<Fn, self&> && !std::invocable<T, self&>)
+    constexpr OwnSpan(std::integral auto c_size, Fn&& init)
+        : ptr(c_size > 0 ? _default_allocate(c_size) : nullptr)
+        , sz(c_size) {
+        assert(c_size >= 0);
+        FWD(init)(*this);
+    }
+
+    template <typename... Ts>
+    constexpr OwnSpan(std::integral auto c_size, Ts const&... args)
+        : ptr(c_size > 0 ? _default_allocate(c_size) : nullptr)
         , sz(c_size) {
         assert(c_size >= 0);
         for (T& val : *this)
-            std::construct_at(&val, first, args...);
+            std::construct_at(&val, args...);
     }
 
-    constexpr OwnSpan(T* c_ptr, size_t c_size, Deleter const& c_del)
+    constexpr OwnSpan(T* c_ptr, std::integral auto c_size, Deleter const& c_del)
         : ptr(c_size > 0 ? c_ptr : nullptr)
         , sz(c_size)
         , del(c_del) {
     }
 
-    constexpr OwnSpan(T* c_ptr, size_t c_size, Deleter&& c_del)
+    constexpr OwnSpan(T* c_ptr, std::integral auto c_size, Deleter&& c_del)
         : ptr(c_size > 0 ? c_ptr : nullptr)
         , sz(c_size)
         , del(std::move(c_del)) {
     }
 
-    constexpr OwnSpan(T* c_ptr, size_t c_size)
+    constexpr OwnSpan(T* c_ptr, std::integral auto c_size)
         : ptr(c_size > 0 ? c_ptr : nullptr)
         , sz(c_size) {
     }
 
     constexpr OwnSpan(OwnSpan const& other)
-        : ptr(other.sz > 0 ? std::allocator<T>{}.allocate(other.sz) : nullptr)
+        : ptr(other.sz > 0 ? _default_allocate(other.sz) : nullptr)
         , sz(other.sz) {
         for (size_t i = 0; i < sz; ++i)
             std::construct_at(ptr + i, other[i]);
@@ -183,9 +222,13 @@ public:
     }
 
 private:
+    constexpr auto* _default_allocate(size_t n) {
+        return std::allocator<T>{}.allocate(n);
+    }
+
     constexpr void _free() {
         if (ptr != nullptr)
-            del(ptr);
+            del(ptr, sz);
         ptr = nullptr;
         sz  = 0;
     }
@@ -195,29 +238,42 @@ private:
     [[no_unique_address]] Deleter del = {};
 };
 
+// If init by extern ptr, assume default deleter
 template <std::integral S, typename T>
-OwnSpan(S, T) -> OwnSpan<T>;
+OwnSpan(T*, S) -> OwnSpan<T, ArrayDel<T>>;
+
+template <std::integral S, typename T>
+OwnSpan(S, T) -> OwnSpan<T, AllocatorDel<T>>;
+
 
 #ifdef CAV_COMP_TESTS
 namespace test {
 
     static constexpr int  buff[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-    static constexpr auto span    = OwnSpan(buff, 8, nop);
+    static constexpr auto ospan   = OwnSpan(buff, 8, nop);  // equivalent to std::span
 
-    CAV_PASS(span.size() == 8);
-    CAV_PASS(span[0] == 0);
-    CAV_PASS(span[7] == 7);
-    CAV_PASS(span.front() == 0);
-    CAV_PASS(span.back() == 7);
-    CAV_PASS(span.begin() == buff);
-    CAV_PASS(span.end() == buff + 8);
-    CAV_PASS(span.data() == buff);
-    CAV_PASS(!span.empty());
+    // Test sizes
+    CAV_PASS(16 == sizeof(OwnSpan<int>));
+    CAV_PASS(16 == sizeof(OwnSpan<int, ArrayDel<int>>));
+    CAV_PASS(32 == sizeof(OwnSpan(buff, 8, [i = .0L](auto&&...) { nop(i); })));  // 16byte deleter
 
-    CAV_FAIL(span[7] == 8);
-    CAV_FAIL(span[8] == 0);
-    CAV_FAIL(span[16] == 0);
-    CAV_FAIL(span[-16] == 0);
+    CAV_PASS(ospan.size() == 8);
+    CAV_PASS(ospan[0] == 0);
+    CAV_PASS(ospan[7] == 7);
+    CAV_PASS(ospan.front() == 0);
+    CAV_PASS(ospan.back() == 7);
+    CAV_PASS(ospan.begin() == buff);
+    CAV_PASS(ospan.end() == buff + 8);
+    CAV_PASS(ospan.data() == buff);
+    CAV_PASS(!ospan.empty());
+
+    CAV_FAIL(ospan[7] == 8);    // ospan[7] == 7
+    CAV_FAIL(ospan[8] == 0);    // out of bound (+1)
+    CAV_FAIL(ospan[16] == 0);   // out of bound (+9)
+    CAV_FAIL(ospan[-16] == 0);  // out of bound (-16)
+
+    CAV_PASS(OwnSpan(new bool[10](), 1).back() == false);  // allocate 10, span of 1 -> Ok
+    CAV_FAIL(OwnSpan(new bool[1](), 10).back() == false);  // allocate 1, span of 10 -> Error
 
     CAV_BLOCK_PASS({
         auto span2 = OwnSpan<bool>(8);
@@ -227,8 +283,32 @@ namespace test {
 
         span2.front() = span2.back() = true;
         span2[1] = span2[6] = true;
-        return span2[0] != span2[2];
+        assert(span2[0] != span2[2]);
     });
+
+    // Test with non default constructible type
+    CAV_PASS(OwnSpan<value_wrap<bool>>(1, [](auto& me) {
+                 for (auto& s : me)
+                     std::construct_at(&s, true);
+             }).front());
+
+    // Edge case where we have a span of invocables that accept the span itself. In that case
+    // the custom initialization constructor cannot be called, since the custom init must be
+    // considered as default value initialization.
+    struct strange_invokable {
+        constexpr void operator()(OwnSpan<strange_invokable>& me) {
+            assert(me.empty());  // syntetic fail if invoked
+            for (auto& s : me)
+                std::construct_at(&s);
+        }
+    };
+
+    CAV_BLOCK_PASS(OwnSpan<strange_invokable>(1, strange_invokable{}));  // Does not invoke-init
+    CAV_BLOCK_FAIL({
+        auto strange_span = OwnSpan<strange_invokable>{};
+        OwnSpan<strange_invokable>{}.front()(strange_span);  // assert fail as expected
+    });
+
 
 }  // namespace test
 #endif

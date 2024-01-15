@@ -26,6 +26,7 @@
 #include "../comptime/mp_utils.hpp"
 #include "../comptime/syntactic_sugars.hpp"
 #include "../numeric/limits.hpp"
+#include "cav/vectors/OwnSpan.hpp"
 
 namespace cav {
 
@@ -317,11 +318,25 @@ namespace test {
 /// Simple range stuff
 
 template <typename T>
-constexpr void iota(auto& container, T start, T const& step) noexcept {
+constexpr void iota(auto& container, T start, T const& step = 1) noexcept {
     for (size_t i = 0; i < container.size(); ++i) {
         container[i] = start;
         start += step;
     }
+}
+
+template <typename T>
+constexpr cav::OwnSpan<T> make_iota(T start, T end, T const& step = 1) noexcept {
+    auto container = cav::OwnSpan<T>((end - start) / step);
+    cav::iota(container, start, step);
+    return container;
+}
+
+template <template <class...> class ContTmpl, typename T>
+constexpr ContTmpl<T> make_iota(T start, T end, T const& step = 1) noexcept {
+    auto container = ContTmpl<T>((end - start) / step);
+    cav::iota(container, start, step);
+    return container;
 }
 
 template <typename ContT, typename T>
@@ -382,23 +397,81 @@ template <auto Default>
 
 #ifdef CAV_COMP_TESTS
 namespace test {
+    // iota
+    CAV_BLOCK_PASS({
+        auto ospan = cav::OwnSpan{5, 0};
+        cav::iota(ospan, 10, 2);
+        for (int i = 10; auto x : ospan) {
+            assert(x == i);
+            i += 2;
+        }
+    });
+
+    CAV_BLOCK_FAIL({
+        auto ospan = cav::OwnSpan{5, 0};
+        cav::iota(ospan, 10, 2);
+        for (int i = 10; auto x : ospan) {
+            i += 2;  // wrong increment position
+            assert(x == i);
+        }
+    });
+
+    // make_iota
+    CAV_BLOCK_PASS({
+        auto ospan = cav::make_iota(10, 20, 2);
+        for (int i = 10; auto x : ospan) {
+            assert(x == i);
+            i += 2;
+        }
+    });
+
+    CAV_BLOCK_PASS({
+        auto ospan1 = cav::OwnSpan{5, 0};
+        cav::iota(ospan1, 10, 2);
+        auto ospan2 = cav::make_iota<cav::OwnSpan>(10, 20, 2);
+        for (int i = 0; i < 5; ++i)
+            assert(ospan1[i] == ospan2[i]);
+    });
+
+    CAV_BLOCK_FAIL({
+        auto ospan = cav::make_iota<cav::OwnSpan<int>>(10, 20, 2);
+        for (int i = 10; auto x : ospan) {
+            i += 2;  // wrong increment position
+            assert(x == i);
+        }
+    });
+
+    // find_idx
+    CAV_PASS(find_idx(std::array{0, 1, 18, 3}, 18) == 2);
+    CAV_PASS(find_idx(std::array{0, 1, 18, 3}, 17) == 4);
+
+    // max_elem min_elem
+    CAV_PASS(max_elem(std::array{0, 1, 18, 3}) == 18);
+    CAV_PASS(min_elem(std::array{0, 1, 18, 3}) == 0);
+    CAV_FAIL(max_elem(std::array{0, 1, -18, 3}) == 0);
+    CAV_FAIL(min_elem(std::array{100, -1, 18, 3}) == 0);
+
+
+    // first_elem
+    static constexpr int   a = 1, b = 2, c = 3;
+    static constexpr float d = 1.0, e = 2.0, f = 3.0;
+
     CAV_PASS(first_elem(1, 2, 3) == 1);
     CAV_PASS(first_elem(1.0, 2U, 3.3F, 5LLU) == 1.0);
     CAV_PASS(cav::eq<decltype(first_elem(1, 2, 3)), int&&>);
     CAV_PASS(cav::eq<decltype(first_elem(1.0, 2U, 3.3F, 5LLU)), double&&>);
 
-    CAV_PASS(last_elem(1, 2, 3) == 3);
-    CAV_PASS(last_elem(1.0, 2U, 3.3F, 5LLU) == 5LLU);
-    CAV_PASS(cav::eq<decltype(last_elem(1, 2, 3)), int&&>);
-    CAV_PASS(cav::eq<decltype(last_elem(1.0, 2U, 3.3F, 5LLU)), long long unsigned&&>);
-
-    static constexpr int   a = 1, b = 2, c = 3;
-    static constexpr float d = 1.0, e = 2.0, f = 3.0;
-
     CAV_PASS(first_elem(a, b, c) == 1);
     CAV_PASS(first_elem(a, b, c, d, e, f) == 1.0);
     CAV_PASS(cav::eq<decltype(first_elem(a, b, c)), int const&>);
     CAV_PASS(cav::eq<decltype(first_elem(d, e, f, a, b, c)), float const&>);
+
+
+    // last_elem
+    CAV_PASS(last_elem(1, 2, 3) == 3);
+    CAV_PASS(last_elem(1.0, 2U, 3.3F, 5LLU) == 5LLU);
+    CAV_PASS(cav::eq<decltype(last_elem(1, 2, 3)), int&&>);
+    CAV_PASS(cav::eq<decltype(last_elem(1.0, 2U, 3.3F, 5LLU)), long long unsigned&&>);
 
     CAV_PASS(last_elem(a, b, c) == 3);
     CAV_PASS(last_elem(a, b, c, d, e, f) == 3.0);

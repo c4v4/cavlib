@@ -18,6 +18,26 @@ My coding style has evolved with time, influenced by commonly suggested best pra
 
 Feel free to contact me for anything—whether you like or dislike something, have suggestions or critiques, or if you'd like to do something similar to a thing that you found here and want to know more about how it works.
 
+## Style Summary
+Here's an unsorted list of principles I try to follow:
+
+- Refactor-oriented programming: If an abstraction doesn't quite fit its purpose, feel free to change, remove, split, merge, or do whatever it takes to fix it, even if it means a refactor lasting days. Minor inconveniences add up, so it's better to deal with them now than later when it will be much more painful. The simplest example of this approach translates into the following point.
+
+- If you remember the name of a function wrong, rename it with the wrong name. This usually converges into a small set of names (usually one) that are equally reasonable to you. The main benefits are that the names become meaningful, and often, you don't have to remember the name but just think, "How would I name it?" and it works.
+
+- User code: (my code in other repositories that depend on this one) should be  **simple and clear&#8482;**. What this means changes over time with my personal opinion and taste, but at the time of this writing, it can be summarized as:
+    - Avoid direct allocations (use library code for that).
+    - Put asserts everywhere (both comptime and runtime).
+    - Debug vs Release build: provide a version able to detected an fail on errors
+    - Be explicit with functions (nodiscard, noexcept, const, ...).
+    - Prefer objects with full public members.
+    - Use default-constructible aggregate objects.
+    - Defer all complexities to library code (e.g., allocations, template metaprogramming shenanigans, nifty abstractions, etc.).
+    - User code shoud be understood at a high level by C programmes that never learnt C++ idioms.
+    - Feel free to ignore any of the previous rules if you have a valid reason
+
+- Library code: This repository should contain library code. Library code is free to do whatever hideous things are necessary to expose a useful, clean, and performant abstraction.
+
 ## Todos:
 - I need to start writing unit tests systematically. Currently, all the components have been used at a certain point in time in one or more projects, but this is far to consider them bug-free.
 - The documentation is pretty much non-existent. For many meta-functions or simple utilities it is not a problem (since they are small enough to be self-explanatory). For larger components I need to add, at the very least, a form of contract.

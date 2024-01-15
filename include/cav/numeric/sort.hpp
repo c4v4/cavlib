@@ -19,7 +19,6 @@
 
 #include <functional>
 
-#include "../mish/functors.hpp"
 #include "../numeric/sorting_networks.hpp"
 
 namespace cav {
@@ -38,7 +37,7 @@ static void sort(It begin, It end) {
     std::sort(begin, end);
 }
 
-template <typename It, typename CompT = less_ftor>
+template <typename It, typename CompT = std::less<>>
 static void small_sort(It beg, It end, CompT&& comp = {}) {
     int size = end - beg;
     switch (size) {
@@ -143,7 +142,7 @@ static void small_sort(It beg, It end, CompT&& comp = {}) {
 /// @brief Network sorting for small cases. Since the size is known at compile time,
 /// cases up to 32 are included (and discarded by the compiler if not used).
 ///
-template <int Sz, typename ContainerT, typename CompT = less_ftor>
+template <int Sz, typename ContainerT, typename CompT = std::less<>>
 static void small_sort(ContainerT& array, CompT&& comp = {}) {
     if constexpr (Sz == 2)
         netsort::s2(std::begin(array), comp);
@@ -213,12 +212,12 @@ static void small_sort(ContainerT& array, CompT&& comp = {}) {
         });
 }
 
-template <typename ContainerT, typename CompT = less_ftor>
+template <typename ContainerT, typename CompT = std::less<>>
 static void small_sort(ContainerT& container, CompT&& comp = {}) {
     return small_sort(container.begin(), container.end(), FWD(comp));
 }
 
-template <typename T, size_t Sz, typename CompT = less_ftor>
+template <typename T, size_t Sz, typename CompT = std::less<>>
 static void small_sort(std::array<T, Sz>& array, CompT&& comp = {}) {
     return small_sort<Sz>(array, FWD(comp));
 }

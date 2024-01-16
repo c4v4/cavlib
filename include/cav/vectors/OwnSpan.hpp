@@ -126,7 +126,7 @@ public:
     }
 
     constexpr OwnSpan& operator=(OwnSpan const& other) {
-        if (&other == this)
+        if (std::addressof(other) == this)
             return *this;
 
         _free();
@@ -139,6 +139,9 @@ public:
     }
 
     constexpr OwnSpan& operator=(OwnSpan&& other) noexcept {
+        if (std::addressof(other) == this)
+            return *this;
+
         _free();
         std::swap(ptr, other.ptr);
         std::swap(sz, other.sz);

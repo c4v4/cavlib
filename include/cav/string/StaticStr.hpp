@@ -104,6 +104,11 @@ public:
     [[nodiscard]] static constexpr std::size_t size() {
         return N;
     }
+
+    [[nodiscard]] constexpr bool starts_with(auto const& prefix) const {
+        return static_cast<std::string_view>(*this).starts_with(
+            static_cast<std::string_view>(prefix));
+    }
 };
 
 template <size_t M, size_t N>
@@ -228,7 +233,16 @@ constexpr cav::ct<Str> operator""_cs() noexcept {
     return {};
 }
 
+#ifdef CAV_COMP_TESTS
+namespace test {
 CAV_PASS(cav::StaticStr("test") == "test"_s);
 CAV_PASS(cav::eq<cav::StaticStr<5>, TYPEOF("test"_s)>);
+CAV_PASS("test"_s.starts_with(""_s));
+CAV_PASS("test"_s.starts_with("t"_s));
+CAV_PASS("test"_s.starts_with("test"_s));
+CAV_FAIL("test"_s.starts_with("est"_s));
+CAV_FAIL("test"_s.starts_with("test "_s));
+}  // namespace test
+#endif
 
 #endif /* CAV_INCLUDE_STATICSTR_HPP */

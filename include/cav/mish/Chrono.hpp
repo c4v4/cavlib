@@ -76,7 +76,7 @@ struct Chrono {
     }
 
     template <typename UnitT2>
-    [[nodiscard]] auto lap() const {
+    [[nodiscard]] auto lap() {
         return time_cast<UnitT2>(lap());
     }
 };

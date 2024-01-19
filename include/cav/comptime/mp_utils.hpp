@@ -23,7 +23,7 @@
 namespace cav {
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     struct t0 {};
 
     struct t1 {};
@@ -35,7 +35,7 @@ namespace test {
     struct t4 {};
 
     struct t5 {};
-}  // namespace test
+}
 #endif
 
 
@@ -54,11 +54,11 @@ template <typename CSetT, template <class...> class Tmpl>
 using change_template_t = typename change_template<CSetT, Tmpl>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<change_template_t<pack<t1>, inherit>, inherit<t1>>);
     CAV_PASS(eq<change_template_t<inherit<t1, t2>, inherit>, inherit<t1, t2>>);
     CAV_PASS(eq<change_template_t<pack<>, inherit>, inherit<>>);
-}  // namespace test
+}
 #endif
 
 ////// base_template //////
@@ -81,11 +81,11 @@ template <template <class...> class Tmpl, typename T>
 static constexpr bool is_base_template_v = base_template<Tmpl, T>::value;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<base_template_t<inherit, inherit<t1>>, inherit<t1>>);
     CAV_PASS(eq<base_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
     CAV_PASS(eq<base_template_t<inherit, inherit<>>, inherit<>>);
-}  // namespace test
+}
 #endif
 
 ////// base_val_template //////
@@ -108,10 +108,10 @@ template <template <auto...> class Tmpl, typename T>
 static constexpr bool is_base_val_template_v = base_val_template<Tmpl, T>::value;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<base_val_template_t<ct, inherit<ct<1>>>, ct<1>>);
     CAV_PASS(is_base_val_template_v<ct, inherit<ct<1>>>);
-}  // namespace test
+}
 #endif
 
 /////// nth_type ///////
@@ -153,11 +153,11 @@ template <std::size_t N>
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(nth_arg<0>(0, "1", false) == 0);
     CAV_PASS(nth_arg<1>(0, "1", false)[0] == '1');
     CAV_PASS(!nth_arg<2>(0, "1", false));
-}  // namespace test
+}
 #endif
 
 template <std::size_t N, typename... Ts>
@@ -182,14 +182,14 @@ template <std::size_t N, typename T>
 using nth_type_unwrap_t = typename nth_type_unwrap<N, T>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<nth_type_t<0, t1>, t1>);
     CAV_PASS(eq<nth_type_t<1, t1, t2, t3>, t2>);
     CAV_PASS(eq<nth_type_t<2, t1, t2, t3>, t3>);
     CAV_PASS(eq<nth_type_unwrap_t<0, pack<t1>>, t1>);
     CAV_PASS(eq<nth_type_unwrap_t<1, pack<t1, t2, t3>>, t2>);
     CAV_PASS(eq<nth_type_unwrap_t<2, pack<t1, t2, t3>>, t3>);
-}  // namespace test
+}
 #endif
 
 ////// first_type //////
@@ -239,7 +239,7 @@ template <class... Args>
 using last_type_t = typename last_type<Args...>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<first_type_t<t1, t2, t3>, t1>);
     CAV_PASS(eq<first_type_t<t1>, t1>);
     CAV_PASS(eq<first_type_t<>, void>);
@@ -249,7 +249,7 @@ namespace test {
     CAV_PASS(eq<last_type_t<t1, t2, t3>, t3>);
     CAV_PASS(eq<last_type_t<t1>, t1>);
     CAV_PASS(eq<last_type_t<>, void>);
-}  // namespace test
+}
 #endif
 
 
@@ -280,7 +280,7 @@ template <typename... Ts>
 constexpr bool all_different_v = all_different<Ts...>::value;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(all_equal_v<>);
     CAV_PASS(all_different_v<>);
     CAV_PASS(all_equal_v<t1>);
@@ -289,7 +289,7 @@ namespace test {
     CAV_PASS(!all_equal_v<t1, t2>);
     CAV_PASS(all_equal_v<t1, t1>);
     CAV_PASS(!all_different_v<t1, t1>);
-}  // namespace test
+}
 #endif
 
 ////// has_type_v //////
@@ -297,11 +297,11 @@ template <typename T, typename... Ts>
 constexpr bool has_type_v = (eq<T, Ts> || ...);
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(!has_type_v<t1>);
     CAV_PASS(has_type_v<t1, t1, t2>);
     CAV_PASS(!has_type_v<t1, t2, t3>);
-}  // namespace test
+}
 #endif
 
 ////// has_template //////
@@ -336,7 +336,7 @@ using get_template_t = typename get_template<Tmpl, Ts...>::type;
 
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(has_template_v<pack, inherit<pack<t1>>, t2>);
     CAV_PASS(has_template_v<pack, inherit<t1>, pack<t2>>);
     CAV_PASS(!has_template_v<pack, inherit<t1>, t2>);
@@ -344,7 +344,7 @@ namespace test {
     CAV_PASS(eq<get_template_t<inherit, inherit<>>, inherit<>>);
     CAV_PASS(eq<get_template_t<inherit, inherit<t1>>, inherit<t1>>);
     CAV_PASS(eq<get_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
-}  // namespace test
+}
 #endif
 
 
@@ -398,14 +398,14 @@ using get_template_unwrap_t = typename get_template_unwrap<Tmpl, PackTmpl>::type
 
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(has_type_unwrap_v<t1, pack<t1>>);
     CAV_PASS(!has_type_unwrap_v<t1, pack<t2>>);
     CAV_PASS(has_template_unwrap_v<pack, inherit<pack<t1>>>);
     CAV_PASS(!has_template_unwrap_v<pack, inherit<t1>>);
     CAV_PASS(eq<get_template_unwrap_t<pack, inherit<pack<t1>>>, pack<t1>>);
     CAV_PASS(!eq<get_template_unwrap_t<pack, inherit<t1>>, pack<t1>>);
-}  // namespace test
+}
 #endif
 
 
@@ -442,14 +442,14 @@ template <typename T1, typename T2>
 concept same_template = have_same_template<T1, T2>::value;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(have_same_types_v<pack<t1>, pack<t1>>);
     CAV_PASS(have_same_types_v<pack<t1, t2>, pack<t2, t1>>);
     CAV_PASS(!have_same_types_v<pack<t1, t2>, pack<t1, t3>>);
     CAV_PASS(have_same_template_v<pack<t1>, pack<t2>>);
     CAV_PASS(have_same_template_v<pack<t1, t2>, pack<>>);
     CAV_PASS(!have_same_template_v<pack<t1>, inherit<pack<t1>>>);
-}  // namespace test
+}
 #endif
 
 ///////// PACKS UNION WITH TYPES /////////
@@ -488,12 +488,12 @@ template <typename Acc, typename... Ts>
 using unique_t = typename unique<Acc, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<pack<t1>, unique_t<pack<>, t1>>);
     CAV_PASS(eq<pack<t1>, unique_t<pack<>, t1, t1>>);
     CAV_PASS(eq<pack<t2, t1>, unique_t<pack<>, t2, t1, t1, t2>>);
     CAV_PASS(eq<pack<t1, t2>, unique_t<pack<>, t1, t1, t1, t2>>);
-}  // namespace test
+}
 #endif
 
 ////// fill_unique //////
@@ -505,12 +505,12 @@ template <template <class...> class PackTmpl, typename... Ts>
 using fill_unique_t = typename fill_unique<PackTmpl, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<fill_unique_t<pack, t1>, pack<t1>>);
     CAV_PASS(eq<fill_unique_t<pack, t1, t1>, pack<t1>>);
     CAV_PASS(eq<fill_unique_t<pack, t2, t1, t1, t2>, pack<t2, t1>>);
     CAV_PASS(eq<fill_unique_t<pack, t1, t1, t1, t2>, pack<t1, t2>>);
-}  // namespace test
+}
 #endif
 
 namespace detail {
@@ -557,7 +557,7 @@ template <template <class...> class PackTmpl, typename... Ts>
 using pack_union_t = typename pack_union<PackTmpl, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<pack<t1>, pack_union_t<pack, t1>>);
     CAV_PASS(eq<pack<t1>, pack_union_t<pack, t1, t1>>);
     CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, t1, t5>>);
@@ -566,7 +566,7 @@ namespace test {
     CAV_PASS(eq<pack<t1, t5>, pack_union_t<pack, pack<t1, t1>, pack<t5>>>);
     CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, pack<t1>>>);
     CAV_PASS(eq<pack<t1, t5>, pack_union_t<pack, pack<>, pack<t1, t1>, t5>>);
-}  // namespace test
+}
 #endif
 
 
@@ -602,12 +602,12 @@ template <typename AccT, typename ExT, typename... Ts>
 using fill_pack_excluding_t = typename fill_pack_excluding<AccT, ExT, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0>, pack<t0>>);
     CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t1>, pack<t1>>);
     CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0, t1, t2, t0, t1>, pack<t1, t2, t1>>);
     CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0, t0, t0>, pack<t0>>);
-}  // namespace test
+}
 #endif
 
 ////// remove_from_pack //////
@@ -623,12 +623,12 @@ template <typename AccT, typename ExT>
 using remove_from_pack_t = typename remove_from_pack<AccT, ExT>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<remove_from_pack_t<pack<t0>, t0>, pack<t0>>);
     CAV_PASS(eq<remove_from_pack_t<pack<t1>, t0>, pack<t1>>);
     CAV_PASS(eq<remove_from_pack_t<pack<t0, t1, t2, t0, t1>, t0>, pack<t1, t2, t1>>);
     CAV_PASS(eq<remove_from_pack_t<pack<t0, t0, t0>, t0>, pack<t0>>);
-}  // namespace test
+}
 #endif
 
 ////// pack_union_excluding //////
@@ -640,13 +640,13 @@ template <template <class...> class PackTmpl, typename ExT, typename... Ts>
 using pack_union_excluding_t = typename pack_union_excluding<PackTmpl, ExT, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0>, pack<t0>>);
     CAV_PASS(eq<pack_union_excluding_t<pack, t0, t1>, pack<t1>>);
     CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1>, pack<t1>>);
     CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1, t2>, pack<t1, t2>>);
     CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1, t2, t1, t2, t2, t2>, pack<t1, t2>>);
-}  // namespace test
+}
 #endif
 
 ////// collapse_if_one //////
@@ -667,10 +667,10 @@ template <typename T>
 using collapse_if_one_t = typename collapse_if_one<T>::type;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<collapse_if_one_t<pack<void>>, void>);
     CAV_PASS(eq<collapse_if_one_t<pack<void, t1>>, pack<void, t1>>);
-}  // namespace test
+}
 #endif
 
 ////// pack difference //////
@@ -708,12 +708,12 @@ using pack_difference_t = typename pack_difference<Ts...>::type;
 
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(eq<pack_difference_t<pack<t1, t2, t3, t4>, pack<t1, t4>>, pack<t2, t3>>);
     CAV_PASS(eq<pack_difference_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);
     CAV_PASS(eq<pack_difference_t<pack<t1, t2>, pack<t3, t4>>, pack<t1, t2>>);
     CAV_PASS(eq<pack_difference_t<pack<>, pack<t3, t4>>, pack<>>);
-}  // namespace test
+}
 #endif
 
 ////// not_copy_move_ctor //////

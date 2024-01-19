@@ -83,7 +83,7 @@ template <class U, template <class...> class Tmpl>
 concept not_inst_of = (!inst_of<U, Tmpl>);
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     template <typename...>
     struct S {};
 
@@ -109,7 +109,7 @@ namespace test {
 
     static constexpr bool unused = templated_context<int, 0>();
 
-}  // namespace test
+}
 #endif
 
 

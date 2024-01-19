@@ -177,7 +177,7 @@ requires requires(ST1 s1, ST2 s2) {
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     static constexpr auto stra   = StaticStr{"a"};
     static constexpr char strb[] = "b";
     static constexpr auto strc   = std::array{'c', '\0'};
@@ -211,7 +211,7 @@ template <std::integral auto Val>
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(int_to_const_str<12345>()[0] == '1');
     CAV_PASS(int_to_const_str<12345>()[1] == '2');
     CAV_PASS(int_to_const_str<12345>()[2] == '3');
@@ -234,7 +234,7 @@ constexpr cav::ct<Str> operator""_cs() noexcept {
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
 CAV_PASS(cav::StaticStr("test") == "test"_s);
 CAV_PASS(cav::eq<cav::StaticStr<5>, TYPEOF("test"_s)>);
 CAV_PASS("test"_s.starts_with(""_s));
@@ -242,7 +242,7 @@ CAV_PASS("test"_s.starts_with("t"_s));
 CAV_PASS("test"_s.starts_with("test"_s));
 CAV_FAIL("test"_s.starts_with("est"_s));
 CAV_FAIL("test"_s.starts_with("test "_s));
-}  // namespace test
+}
 #endif
 
 #endif /* CAV_INCLUDE_STATICSTR_HPP */

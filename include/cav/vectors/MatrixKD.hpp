@@ -169,7 +169,7 @@ struct SubMatrixKD {
 
 ///////////// TESTS ////////////////
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(sizeof(MatrixKD<int, 1>) == 24);
     CAV_PASS(sizeof(MatrixKD<int, 2>) == 32);
     CAV_PASS(sizeof(MatrixKD<int, 3>) == 40);
@@ -238,7 +238,7 @@ namespace test {
                     // Error, it has not been initialized in this way
                     assert(cmat[i][j][k] == i * cmat.stride() + j * cmat[i].stride() + k);
     });
-}  // namespace test
+}
 #endif
 
 }  // namespace cav

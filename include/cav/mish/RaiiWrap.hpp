@@ -48,7 +48,7 @@ template <typename T, typename DestrT>
 RaiiWrap(T x, DestrT destr) -> RaiiWrap<T, DestrT>;
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_BLOCK_PASS({
         auto ptr = RaiiWrap{new int{42}, [](auto p) { delete p; }};
         assert(*ptr == 42);
@@ -77,7 +77,7 @@ namespace test {
         assert(*ptr == 42);  // use after free -> UB
     });
 
-}  // namespace test
+}
 #endif
 
 }  // namespace cav

@@ -71,7 +71,7 @@ namespace detail {
     };
 
 #ifdef CAV_COMP_TESTS
-    namespace test {
+    namespace {
         enum class TEST { A, B };
 
         enum TEST2 { A, B };
@@ -83,7 +83,7 @@ namespace detail {
         CAV_PASS(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
         CAV_PASS(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
 
-    }  // namespace test
+    }
 #endif
 
     constexpr bool ends_with(std::string_view str, std::string_view suffix) {

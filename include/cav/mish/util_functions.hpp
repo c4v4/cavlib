@@ -63,7 +63,7 @@ template <std::integral T1, std::integral T2>
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(check_overflow_sum(1 << 30, 1 << 30));
     CAV_PASS(!check_overflow_sum(1 << 30, 1 << 29));
     CAV_PASS(check_overflow_sum(type_max<int>, 1));
@@ -81,7 +81,7 @@ namespace test {
     CAV_PASS(check_overflow_mul(-(type_min<int> / 2), 2));
     CAV_PASS(check_overflow_mul(2, -(type_min<int> / 2)));
     CAV_PASS(!check_overflow_mul(-1, 1));
-}  // namespace test
+}
 #endif
 
 [[nodiscard]] CAV_PURE constexpr int ssize(auto&& range) noexcept {
@@ -281,14 +281,14 @@ constexpr auto ilog10(T val) {
 };
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(ilog10(9) == 0);
     CAV_PASS(ilog10(10) == 1);
     CAV_PASS(ilog10(99) == 1);
     CAV_PASS(ilog10(100) == 2);
     CAV_PASS(ilog10(999) == 2);
     CAV_PASS(ilog10(1000) == 3);
-}  // namespace test
+}
 #endif
 
 /// @brief Integer constexpr sqrt
@@ -308,11 +308,11 @@ template <std::integral T>
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     CAV_PASS(isqrt(1ULL << 62ULL) == (1ULL << 31ULL));
     CAV_PASS(isqrt(~0ULL) == (~0U));
     CAV_PASS(isqrt(620607744) == (24912));
-}  // namespace test
+}
 #endif
 
 /// Simple range stuff
@@ -396,7 +396,7 @@ template <auto Default>
 }
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
     // iota
     CAV_BLOCK_PASS({
         auto ospan = cav::OwnSpan{5, 0};
@@ -477,7 +477,7 @@ namespace test {
     CAV_PASS(last_elem(a, b, c, d, e, f) == 3.0);
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c)), int const&>);
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c, d, e, f)), float const&>);
-}  // namespace test
+}
 #endif
 
 }  // namespace cav

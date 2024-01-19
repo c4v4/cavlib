@@ -250,7 +250,7 @@ OwnSpan(S, T) -> OwnSpan<T, AllocatorDel<T>>;
 
 
 #ifdef CAV_COMP_TESTS
-namespace test {
+namespace {
 
     static constexpr int  buff[8] = {0, 1, 2, 3, 4, 5, 6, 7};
     static constexpr auto ospan   = OwnSpan(buff, 8, nop);  // equivalent to std::span
@@ -313,7 +313,7 @@ namespace test {
     });
 
 
-}  // namespace test
+}
 #endif
 
 }  // namespace cav

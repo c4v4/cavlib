@@ -238,7 +238,7 @@ namespace {
                     // Error, it has not been initialized in this way
                     assert(cmat[i][j][k] == i * cmat.stride() + j * cmat[i].stride() + k);
     });
-}
+}  // namespace
 #endif
 
 }  // namespace cav

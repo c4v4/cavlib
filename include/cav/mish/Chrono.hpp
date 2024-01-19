@@ -89,7 +89,7 @@ namespace {
     CAV_PASS(Chrono<sec>::template time_cast<usec>(1) == 1000000.0);
     CAV_PASS(Chrono<sec>::template time_cast<days>(86400) == 1.0);
     CAV_PASS(Chrono<days>::template time_cast<sec>(1) == 86400.0);
-}
+}  // namespace
 #endif
 
 }  // namespace cav

@@ -35,57 +35,58 @@ namespace {
     struct t4 {};
 
     struct t5 {};
-}
+}  // namespace
 #endif
 
 
-////// change_template //////
+////// tmpl_cast //////
 /// @brief Given a type which is a template istance, change the template type into another that is
 /// compatible with the same template parameters.
-template <typename CSetT, template <class...> class Tmpl>
-struct change_template;
+template <template <class...> class Tmpl, typename T>
+struct tmpl_cast;
 
 template <template <class...> class FromTmpl, typename... Ts, template <class...> class ToTmpl>
-struct change_template<FromTmpl<Ts...>, ToTmpl> {
+struct tmpl_cast<ToTmpl, FromTmpl<Ts...>> {
     using type = ToTmpl<Ts...>;
 };
 
-template <typename CSetT, template <class...> class Tmpl>
-using change_template_t = typename change_template<CSetT, Tmpl>::type;
+template <template <class...> class Tmpl, typename T>
+using tmpl_cast_t = typename tmpl_cast<Tmpl, T>::type;
 
 #ifdef CAV_COMP_TESTS
 namespace {
-    CAV_PASS(eq<change_template_t<pack<t1>, inherit>, inherit<t1>>);
-    CAV_PASS(eq<change_template_t<inherit<t1, t2>, inherit>, inherit<t1, t2>>);
-    CAV_PASS(eq<change_template_t<pack<>, inherit>, inherit<>>);
-}
+    CAV_PASS(eq<tmpl_cast_t<inherit, pack<t1>>, inherit<t1>>);
+    CAV_PASS(eq<tmpl_cast_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
+    CAV_PASS(eq<tmpl_cast_t<inherit, pack<>>, inherit<>>);
+}  // namespace
 #endif
 
-////// base_template //////
+////// base_tmpl //////
 /// @brief Given a type U that might be or inherit from a instantiation of the type-template
 /// Tmpl<class..>, retrieve the type of Tmpl instantiation. In case of ambiguity, or if the template
 /// is not found, void is returned istead.
 template <template <class...> class Tmpl, class U>
-struct base_template {
+struct base_tmpl {
     template <class... Ts>
     static auto test(Tmpl<Ts...> const&) -> Tmpl<Ts...>;
     static void test(...);
-    using type                  = TYPEOF(base_template::test(std::declval<U>()));
+    using type = TYPEOF(base_tmpl::test(std::declval<U>()));
+
     static constexpr bool value = !eq<type, void>;
 };
 
 template <template <class...> class Tmpl, class U>
-using base_template_t = typename base_template<Tmpl, U>::type;
+using base_tmpl_t = typename base_tmpl<Tmpl, U>::type;
 
 template <template <class...> class Tmpl, typename T>
-static constexpr bool is_base_template_v = base_template<Tmpl, T>::value;
+static constexpr bool is_base_tmpl_v = base_tmpl<Tmpl, T>::value;
 
 #ifdef CAV_COMP_TESTS
 namespace {
-    CAV_PASS(eq<base_template_t<inherit, inherit<t1>>, inherit<t1>>);
-    CAV_PASS(eq<base_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
-    CAV_PASS(eq<base_template_t<inherit, inherit<>>, inherit<>>);
-}
+    CAV_PASS(eq<base_tmpl_t<inherit, inherit<t1>>, inherit<t1>>);
+    CAV_PASS(eq<base_tmpl_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
+    CAV_PASS(eq<base_tmpl_t<inherit, inherit<>>, inherit<>>);
+}  // namespace
 #endif
 
 ////// base_val_template //////
@@ -111,13 +112,13 @@ static constexpr bool is_base_val_template_v = base_val_template<Tmpl, T>::value
 namespace {
     CAV_PASS(eq<base_val_template_t<ct, inherit<ct<1>>>, ct<1>>);
     CAV_PASS(is_base_val_template_v<ct, inherit<ct<1>>>);
-}
+}  // namespace
 #endif
 
 /////// nth_type ///////
 /// @brief Nth type of a pack, like std::tuple_element<N, std::tuple<Ts...>> but
 /// standalone (to avoid the imposition of tuple includes)
-#if false && __has_builtin(__type_pack_element)
+#if __has_builtin(__type_pack_element)
 template <std::size_t N, typename... Ts>
 struct nth_type {
     using type = __type_pack_element<N, Ts...>;
@@ -157,7 +158,7 @@ namespace {
     CAV_PASS(nth_arg<0>(0, "1", false) == 0);
     CAV_PASS(nth_arg<1>(0, "1", false)[0] == '1');
     CAV_PASS(!nth_arg<2>(0, "1", false));
-}
+}  // namespace
 #endif
 
 template <std::size_t N, typename... Ts>
@@ -189,7 +190,7 @@ namespace {
     CAV_PASS(eq<nth_type_unwrap_t<0, pack<t1>>, t1>);
     CAV_PASS(eq<nth_type_unwrap_t<1, pack<t1, t2, t3>>, t2>);
     CAV_PASS(eq<nth_type_unwrap_t<2, pack<t1, t2, t3>>, t3>);
-}
+}  // namespace
 #endif
 
 ////// first_type //////
@@ -226,8 +227,11 @@ using first_type_unwrap_t = typename first_type_unwrap<T>::type;
 ////// last_type //////
 template <class... Ts>
 struct last_type {
+#if __has_builtin(__type_pack_element)
     using type = nth_type_t<sizeof...(Ts) - 1, Ts...>;
-    // typename TYPEOF((std::type_identity<Ts>{}, ...))::type;
+#else
+    using type = typename TYPEOF((std::type_identity<Ts>{}, ...))::type;
+#endif
 };
 
 template <>
@@ -249,7 +253,7 @@ namespace {
     CAV_PASS(eq<last_type_t<t1, t2, t3>, t3>);
     CAV_PASS(eq<last_type_t<t1>, t1>);
     CAV_PASS(eq<last_type_t<>, void>);
-}
+}  // namespace
 #endif
 
 
@@ -289,7 +293,7 @@ namespace {
     CAV_PASS(!all_equal_v<t1, t2>);
     CAV_PASS(all_equal_v<t1, t1>);
     CAV_PASS(!all_different_v<t1, t1>);
-}
+}  // namespace
 #endif
 
 ////// has_type_v //////
@@ -301,111 +305,83 @@ namespace {
     CAV_PASS(!has_type_v<t1>);
     CAV_PASS(has_type_v<t1, t1, t2>);
     CAV_PASS(!has_type_v<t1, t2, t3>);
-}
+}  // namespace
 #endif
 
-////// has_template //////
+////// find_tmpl //////
 template <template <class...> class Tmpl, typename... Ts>
-struct has_template {
-    static constexpr bool value = (is_base_template_v<Tmpl, Ts> || ...);
-};
-
-template <template <class...> class Tmpl, typename... Ts>
-constexpr bool has_template_v = has_template<Tmpl, Ts...>::value;
-
-////// get_template //////
-template <template <class...> class Tmpl, typename... Ts>
-struct get_template {
-    using type = void;
+struct find_tmpl {
+    static_assert(sizeof...(Ts) == 0);  // Check instantiation happened correctly
+    static constexpr bool value = false;
+    using type                  = void;
 };
 
 template <template <class...> class Tmpl, typename T, typename... Tail>
-requires is_base_template_v<Tmpl, T>
-struct get_template<Tmpl, T, Tail...> {
-    using type = T;
+requires is_base_tmpl_v<Tmpl, T>
+struct find_tmpl<Tmpl, T, Tail...> {
+    static constexpr bool value = true;
+    using type                  = base_tmpl_t<Tmpl, T>;
 };
 
 template <template <class...> class Tmpl, typename T, typename... Tail>
-requires(!is_base_template_v<Tmpl, T>)
-struct get_template<Tmpl, T, Tail...> {
-    using type = typename get_template<Tmpl, Tail...>::type;
-};
+requires(!is_base_tmpl_v<Tmpl, T>)
+struct find_tmpl<Tmpl, T, Tail...> : find_tmpl<Tmpl, Tail...> {};
 
 template <template <class...> class Tmpl, typename... Ts>
-using get_template_t = typename get_template<Tmpl, Ts...>::type;
+using find_tmpl_t = typename find_tmpl<Tmpl, Ts...>::type;
+
+template <template <class...> class Tmpl, typename... Ts>
+constexpr bool find_tmpl_v = find_tmpl<Tmpl, Ts...>::value;
 
 
 #ifdef CAV_COMP_TESTS
 namespace {
-    CAV_PASS(has_template_v<pack, inherit<pack<t1>>, t2>);
-    CAV_PASS(has_template_v<pack, inherit<t1>, pack<t2>>);
-    CAV_PASS(!has_template_v<pack, inherit<t1>, t2>);
-    CAV_PASS(!has_template_v<pack>);
-    CAV_PASS(eq<get_template_t<inherit, inherit<>>, inherit<>>);
-    CAV_PASS(eq<get_template_t<inherit, inherit<t1>>, inherit<t1>>);
-    CAV_PASS(eq<get_template_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
-}
+    CAV_PASS(find_tmpl_v<pack, inherit<pack<t1>>, t2>);
+    CAV_PASS(find_tmpl_v<pack, inherit<t1>, pack<t2>>);
+    CAV_PASS(!find_tmpl_v<pack, inherit<t1>, t2>);
+    CAV_PASS(!find_tmpl_v<pack>);
+    CAV_PASS(eq<find_tmpl_t<inherit, inherit<>>, inherit<>>);
+    CAV_PASS(eq<find_tmpl_t<inherit, inherit<t1>>, inherit<t1>>);
+    CAV_PASS(eq<find_tmpl_t<inherit, inherit<t1, t2>>, inherit<t1, t2>>);
+}  // namespace
 #endif
 
 
 ////// has_type_unwrap //////
-template <typename T, typename PackTmpl>
+template <typename T, typename PackT>
 struct has_type_unwrap : std::false_type {};
 
-template <typename T>
-struct has_type_unwrap<T, T> : std::true_type {};
-
-template <typename T, template <class...> class PackTmpl, typename... Ts>
-requires(!eq<T, PackTmpl<Ts...>>)
-struct has_type_unwrap<T, PackTmpl<Ts...>> {
+template <typename T, template <class...> class Tmpl, typename... Ts>
+struct has_type_unwrap<T, Tmpl<Ts...>> {
     static constexpr bool value = (eq<T, Ts> || ...);
 };
 
-////// has_template_unwrap //////
-template <typename T, typename PackTmpl>
-constexpr bool has_type_unwrap_v = has_type_unwrap<T, PackTmpl>::value;
+template <typename T, typename PackT>
+constexpr bool has_type_unwrap_v = has_type_unwrap<T, PackT>::value;
 
+////// find_tmpl_unwrap //////
 template <template <class...> class Tmpl, typename T>
-struct has_template_unwrap {
-    static constexpr bool value = is_base_template_v<Tmpl, T>;
-};
+struct find_tmpl_unwrap;
 
-template <template <class...> class Tmpl, typename... Ts>
-struct has_template_unwrap<Tmpl, Tmpl<Ts...>> : std::true_type {};
+template <template <class...> class Tmpl1, template <class...> class Tmpl2, typename... Ts>
+struct find_tmpl_unwrap<Tmpl1, Tmpl2<Ts...>> : find_tmpl<Tmpl1, Ts...> {};
 
-template <template <class...> class Tmpl, template <class...> class PackTmpl, typename... Ts>
-struct has_template_unwrap<Tmpl, PackTmpl<Ts...>> {
-    static constexpr bool value = has_template_v<Tmpl, Ts...>;
-};
-template <template <class...> class Tmpl, typename PackTmpl>
-constexpr bool has_template_unwrap_v = has_template_unwrap<Tmpl, PackTmpl>::value;
+template <template <class...> class Tmpl, typename PackT>
+constexpr bool find_tmpl_unwrap_v = find_tmpl_unwrap<Tmpl, PackT>::value;
 
-////// get_template_unwrap //////
-template <template <class...> class Tmpl, typename PackTmpl>
-struct get_template_unwrap;
-
-template <template <class...> class Tmpl, typename... Ts>
-struct get_template_unwrap<Tmpl, Tmpl<Ts...>> {
-    using type = Tmpl<Ts...>;
-};
-
-template <template <class...> class Tmpl, template <class...> class PackTmpl, typename... Ts>
-struct get_template_unwrap<Tmpl, PackTmpl<Ts...>> {
-    using type = get_template_t<Tmpl, Ts...>;
-};
-template <template <class...> class Tmpl, typename PackTmpl>
-using get_template_unwrap_t = typename get_template_unwrap<Tmpl, PackTmpl>::type;
+template <template <class...> class Tmpl, typename PackT>
+using find_tmpl_unwrap_t = typename find_tmpl_unwrap<Tmpl, PackT>::type;
 
 
 #ifdef CAV_COMP_TESTS
 namespace {
     CAV_PASS(has_type_unwrap_v<t1, pack<t1>>);
     CAV_PASS(!has_type_unwrap_v<t1, pack<t2>>);
-    CAV_PASS(has_template_unwrap_v<pack, inherit<pack<t1>>>);
-    CAV_PASS(!has_template_unwrap_v<pack, inherit<t1>>);
-    CAV_PASS(eq<get_template_unwrap_t<pack, inherit<pack<t1>>>, pack<t1>>);
-    CAV_PASS(!eq<get_template_unwrap_t<pack, inherit<t1>>, pack<t1>>);
-}
+    CAV_PASS(find_tmpl_unwrap_v<pack, inherit<pack<t1>>>);
+    CAV_PASS(!find_tmpl_unwrap_v<pack, inherit<t1>>);
+    CAV_PASS(eq<find_tmpl_unwrap_t<pack, inherit<pack<t1>>>, pack<t1>>);
+    CAV_PASS(!eq<find_tmpl_unwrap_t<pack, inherit<t1>>, pack<t1>>);
+}  // namespace
 #endif
 
 
@@ -427,240 +403,171 @@ struct have_same_types<TSet1<T1s...>, TSet2<T2s...>> {
 template <typename Pack1T, typename Pack2T>
 constexpr bool have_same_types_v = have_same_types<Pack1T, Pack2T>::value;
 
-////// have_same_template //////
+////// are_tmpl_eq //////
 /// @brief Value true if the two types are both instatiation of the same template.
 template <typename, typename>
-struct have_same_template : std::false_type {};
+struct are_tmpl_eq : std::false_type {};
 
 template <template <class...> class Tmpl, typename... T1s, typename... T2s>
-struct have_same_template<Tmpl<T1s...>, Tmpl<T2s...>> : std::true_type {};
+struct are_tmpl_eq<Tmpl<T1s...>, Tmpl<T2s...>> : std::true_type {};
 
 template <typename T1, typename T2>
-constexpr bool have_same_template_v = have_same_template<T1, T2>::value;
+constexpr bool are_tmpl_v_eq = are_tmpl_eq<T1, T2>::value;
 
 template <typename T1, typename T2>
-concept same_template = have_same_template<T1, T2>::value;
+concept eq_tmpl = are_tmpl_eq<T1, T2>::value;
 
 #ifdef CAV_COMP_TESTS
 namespace {
     CAV_PASS(have_same_types_v<pack<t1>, pack<t1>>);
     CAV_PASS(have_same_types_v<pack<t1, t2>, pack<t2, t1>>);
     CAV_PASS(!have_same_types_v<pack<t1, t2>, pack<t1, t3>>);
-    CAV_PASS(have_same_template_v<pack<t1>, pack<t2>>);
-    CAV_PASS(have_same_template_v<pack<t1, t2>, pack<>>);
-    CAV_PASS(!have_same_template_v<pack<t1>, inherit<pack<t1>>>);
-}
+    CAV_PASS(are_tmpl_v_eq<pack<t1>, pack<t2>>);
+    CAV_PASS(are_tmpl_v_eq<pack<t1, t2>, pack<>>);
+    CAV_PASS(!are_tmpl_v_eq<pack<t1>, inherit<pack<t1>>>);
+}  // namespace
 #endif
 
 ///////// PACKS UNION WITH TYPES /////////
 
+namespace detail {
+    template <typename AccPackT, typename... Ts>
+    struct unique_impl {
+        static_assert(sizeof...(Ts) == 0);
+        using type = AccPackT;
+    };
+
+    template <typename... AcTs, typename T, typename... Ts>
+    requires((eq<T, AcTs> || ...))
+    struct unique_impl<pack<AcTs...>, T, Ts...> : unique_impl<pack<AcTs...>, Ts...> {};
+
+    template <typename... AcTs, typename T, typename... Ts>
+    requires(!(eq<T, AcTs> || ...))
+    struct unique_impl<pack<AcTs...>, T, Ts...> : unique_impl<pack<AcTs..., T>, Ts...> {};
+}  // namespace detail
+
 ////// unique //////
-/// @brief Select unique types inside AccPackTmpl.
+/// @brief Select unique types inside AccPackT.
 /// NOTE: single types remains single types to reduce type-name length
 ///
-/// @tparam AccPackTmpl  Accumulator that will be filled
-/// @tparam Ts  Types to merge
-template <typename AccPackTmpl, typename... Ts>
-struct unique {
-    CAV_PASS(sizeof...(Ts) == 0);
-    using type = AccPackTmpl;
-};
+/// @tparam AccPackT  Accumulator that will be filled
+/// @tparam Ts        Types to merge
+template <typename... Ts>
+struct unique : detail::unique_impl<pack<>, Ts...> {};
 
-template <template <class...> class PackTmpl, typename... AcTs, typename T>
-requires(!(eq<T, AcTs> || ...))
-struct unique<PackTmpl<AcTs...>, T> {
-    using type = PackTmpl<AcTs..., T>;
-};
-
-template <template <class...> class PackTmpl, typename... AcTs, typename T, typename... Ts>
-requires((eq<T, AcTs> || ...))
-struct unique<PackTmpl<AcTs...>, T, Ts...> {
-    using type = typename unique<PackTmpl<AcTs...>, Ts...>::type;
-};
-
-template <template <class...> class PackTmpl, typename... AcTs, typename T, typename... Ts>
-requires(!(eq<T, AcTs> || ...))
-struct unique<PackTmpl<AcTs...>, T, Ts...> {
-    using type = typename unique<PackTmpl<AcTs..., T>, Ts...>::type;
-};
-
-template <typename Acc, typename... Ts>
-using unique_t = typename unique<Acc, Ts...>::type;
+template <typename... Ts>
+using unique_t = typename detail::unique_impl<pack<>, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
 namespace {
-    CAV_PASS(eq<pack<t1>, unique_t<pack<>, t1>>);
-    CAV_PASS(eq<pack<t1>, unique_t<pack<>, t1, t1>>);
-    CAV_PASS(eq<pack<t2, t1>, unique_t<pack<>, t2, t1, t1, t2>>);
-    CAV_PASS(eq<pack<t1, t2>, unique_t<pack<>, t1, t1, t1, t2>>);
-}
-#endif
-
-////// fill_unique //////
-template <template <class...> class PackTmpl, typename... Ts>
-struct fill_unique {
-    using type = unique_t<PackTmpl<>, Ts...>;
-};
-template <template <class...> class PackTmpl, typename... Ts>
-using fill_unique_t = typename fill_unique<PackTmpl, Ts...>::type;
-
-#ifdef CAV_COMP_TESTS
-namespace {
-    CAV_PASS(eq<fill_unique_t<pack, t1>, pack<t1>>);
-    CAV_PASS(eq<fill_unique_t<pack, t1, t1>, pack<t1>>);
-    CAV_PASS(eq<fill_unique_t<pack, t2, t1, t1, t2>, pack<t2, t1>>);
-    CAV_PASS(eq<fill_unique_t<pack, t1, t1, t1, t2>, pack<t1, t2>>);
-}
+    CAV_PASS(eq<pack<t1>, unique_t<t1>>);
+    CAV_PASS(eq<pack<t1>, unique_t<t1, t1>>);
+    CAV_PASS(eq<pack<t2, t1>, unique_t<t2, t1, t1, t2>>);
+    CAV_PASS(eq<pack<t1, t2>, unique_t<t1, t1, t1, t2>>);
+}  // namespace
 #endif
 
 namespace detail {
     ////// conditional_wrap //////
-    template <template <class...> class PackTmpl, typename T>
+    template <typename T>
     struct conditional_wrap {
-        using type = PackTmpl<T>;
+        using type = pack<T>;
     };
 
-    template <template <class...> class PackTmpl, typename... Ts>
-    struct conditional_wrap<PackTmpl, PackTmpl<Ts...>> {
+    template <typename... Ts>
+    struct conditional_wrap<pack<Ts...>> {
+        using type = pack<Ts...>;
+    };
+}  // namespace detail
 
-        using type = PackTmpl<Ts...>;
+////// flat_pack_union //////
+
+template <typename... Ts>
+struct flat_pack_union : flat_pack_union<typename detail::conditional_wrap<Ts>::type...> {};
+
+template <typename... T1s>
+struct flat_pack_union<pack<T1s...>> : unique<T1s...> {};
+
+template <typename... T1s, typename... T2s, typename... Ts>
+struct flat_pack_union<pack<T1s...>, pack<T2s...>, Ts...>
+    : flat_pack_union<pack<T1s..., T2s...>, Ts...> {};
+
+template <>
+struct flat_pack_union<> {
+    using type = pack<>;
+};
+
+template <typename... Ts>
+using flat_pack_union_t = typename flat_pack_union<Ts...>::type;
+
+#ifdef CAV_COMP_TESTS
+namespace {
+    CAV_PASS(eq<pack<t1>, flat_pack_union_t<t1>>);
+    CAV_PASS(eq<pack<t1>, flat_pack_union_t<t1, t1>>);
+    CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<t5, t1, t1, t5>>);
+    CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<pack<t5, t1>, t1, t5>>);
+    CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<t5, t1, pack<t5, t1>>>);
+    CAV_PASS(eq<pack<t1, t5>, flat_pack_union_t<pack<t1, t1>, pack<t5>>>);
+    CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<pack<t5, t1>, pack<t1>>>);
+    CAV_PASS(eq<pack<t1, t5>, flat_pack_union_t<pack<>, pack<t1, t1>, t5>>);
+}  // namespace
+#endif
+
+
+////// remove_from_pack ////// @brief
+namespace detail {
+    template <typename AccT, typename... Ts>
+    struct remove_type_impl {
+        static_assert(sizeof...(Ts) == 1);
+        using type = AccT;
     };
 
-    template <template <class...> class PackTmpl, typename T>
-    using conditional_wrap_t = typename detail::conditional_wrap<PackTmpl, T>::type;
+    template <typename... AccTs, typename RemT, typename T, typename... Ts>
+    struct remove_type_impl<pack<AccTs...>, RemT, T, Ts...>
+        : remove_type_impl<pack<AccTs..., T>, RemT, Ts...> {};
+
+    template <typename... AccTs, typename RemT, typename... Ts>
+    struct remove_type_impl<pack<AccTs...>, RemT, RemT, Ts...>
+        : remove_type_impl<pack<AccTs...>, RemT, Ts...> {};
 
 }  // namespace detail
 
-////// pack_union //////
+template <typename RemT, typename... Ts>
+struct remove_type : detail::remove_type_impl<pack<>, RemT, Ts...> {};
 
-template <template <class...> class PackTmpl, typename... Ts>
-struct pack_union {
-    using type = typename pack_union<PackTmpl, detail::conditional_wrap_t<PackTmpl, Ts>...>::type;
-};
+template <typename RemT, typename... Ts>
+using remove_type_t = typename remove_type<RemT, Ts...>::type;
 
-template <template <class...> class PackTmpl, typename... T1s>
-struct pack_union<PackTmpl, PackTmpl<T1s...>> {
-    using type = unique_t<PackTmpl<>, T1s...>;
-};
+template <typename PackT, typename RemT>
+struct remove_type_unwrap;
 
-template <template <class...> class PackTmpl, typename... T1s, typename... T2s, typename... Ts>
-struct pack_union<PackTmpl, PackTmpl<T1s...>, PackTmpl<T2s...>, Ts...> {
-    using type = typename pack_union<PackTmpl, unique_t<PackTmpl<>, T1s..., T2s...>, Ts...>::type;
-};
+template <template <class...> class Tmpl, typename... Ts, typename RemT>
+struct remove_type_unwrap<Tmpl<Ts...>, RemT> : remove_type<RemT, Ts...> {};
 
-template <template <class...> class PackTmpl>
-struct pack_union<PackTmpl> {
-    using type = PackTmpl<>;
-};
-
-template <template <class...> class PackTmpl, typename... Ts>
-using pack_union_t = typename pack_union<PackTmpl, Ts...>::type;
+template <typename PackT, typename RemT>
+using remove_type_unwrap_t = typename remove_type_unwrap<PackT, RemT>::type;
 
 #ifdef CAV_COMP_TESTS
 namespace {
-    CAV_PASS(eq<pack<t1>, pack_union_t<pack, t1>>);
-    CAV_PASS(eq<pack<t1>, pack_union_t<pack, t1, t1>>);
-    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, t1, t5>>);
-    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, t1, t5>>);
-    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, t5, t1, pack<t5, t1>>>);
-    CAV_PASS(eq<pack<t1, t5>, pack_union_t<pack, pack<t1, t1>, pack<t5>>>);
-    CAV_PASS(eq<pack<t5, t1>, pack_union_t<pack, pack<t5, t1>, pack<t1>>>);
-    CAV_PASS(eq<pack<t1, t5>, pack_union_t<pack, pack<>, pack<t1, t1>, t5>>);
-}
-#endif
-
-
-////// fill_pack_excluding //////
-template <typename AccT, typename ExT, typename... Ts>
-struct fill_pack_excluding;
-
-template <template <class...> class PackTmpl, typename ExT>
-struct fill_pack_excluding<PackTmpl<>, ExT, ExT> {
-    using type = PackTmpl<ExT>;
-};
-
-template <template <class...> class PackTmpl, typename... TPs, typename ExT>
-struct fill_pack_excluding<PackTmpl<TPs...>, ExT> {
-    using type = PackTmpl<TPs...>;
-};
-
-template <template <class...> class PackTmpl,
-          typename... PTs,
-          typename ExT,
-          typename T,
-          typename... Ts>
-struct fill_pack_excluding<PackTmpl<PTs...>, ExT, T, Ts...> {
-    using type = typename fill_pack_excluding<PackTmpl<PTs..., T>, ExT, Ts...>::type;
-};
-
-template <template <class...> class PackTmpl, typename... PTs, typename ExT, typename... Ts>
-struct fill_pack_excluding<PackTmpl<PTs...>, ExT, ExT, Ts...> {
-    using type = typename fill_pack_excluding<PackTmpl<PTs...>, ExT, Ts...>::type;
-};
-
-template <typename AccT, typename ExT, typename... Ts>
-using fill_pack_excluding_t = typename fill_pack_excluding<AccT, ExT, Ts...>::type;
-
-#ifdef CAV_COMP_TESTS
-namespace {
-    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0>, pack<t0>>);
-    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t1>, pack<t1>>);
-    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0, t1, t2, t0, t1>, pack<t1, t2, t1>>);
-    CAV_PASS(eq<fill_pack_excluding_t<pack<>, t0, t0, t0, t0>, pack<t0>>);
-}
-#endif
-
-////// remove_from_pack //////
-template <typename AccT, typename ExT>
-struct remove_from_pack;
-
-template <template <class...> class PackTmpl, typename... PTs, typename ExT>
-struct remove_from_pack<PackTmpl<PTs...>, ExT> {
-    using type = fill_pack_excluding_t<PackTmpl<>, ExT, PTs...>;
-};
-
-template <typename AccT, typename ExT>
-using remove_from_pack_t = typename remove_from_pack<AccT, ExT>::type;
-
-#ifdef CAV_COMP_TESTS
-namespace {
-    CAV_PASS(eq<remove_from_pack_t<pack<t0>, t0>, pack<t0>>);
-    CAV_PASS(eq<remove_from_pack_t<pack<t1>, t0>, pack<t1>>);
-    CAV_PASS(eq<remove_from_pack_t<pack<t0, t1, t2, t0, t1>, t0>, pack<t1, t2, t1>>);
-    CAV_PASS(eq<remove_from_pack_t<pack<t0, t0, t0>, t0>, pack<t0>>);
-}
-#endif
-
-////// pack_union_excluding //////
-template <template <class...> class PackTmpl, typename ExT, typename... Ts>
-struct pack_union_excluding {
-    using type = remove_from_pack_t<pack_union_t<PackTmpl, Ts...>, ExT>;
-};
-template <template <class...> class PackTmpl, typename ExT, typename... Ts>
-using pack_union_excluding_t = typename pack_union_excluding<PackTmpl, ExT, Ts...>::type;
-
-#ifdef CAV_COMP_TESTS
-namespace {
-    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0>, pack<t0>>);
-    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t1>, pack<t1>>);
-    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1>, pack<t1>>);
-    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1, t2>, pack<t1, t2>>);
-    CAV_PASS(eq<pack_union_excluding_t<pack, t0, t0, t1, t2, t1, t2, t2, t2>, pack<t1, t2>>);
-}
+    CAV_PASS(eq<remove_type_t<pack<t0>, t0, t1>, pack<t0, t1>>);
+    CAV_PASS(eq<remove_type_t<pack<t1>, t0, t1>, pack<t0, t1>>);
+    CAV_PASS(eq<remove_type_unwrap_t<pack<t0, t1, t2, t0, t1>, t0>, pack<t1, t2, t1>>);
+    CAV_PASS(eq<remove_type_unwrap_t<pack<t0, t0, t0>, t0>, pack<>>);
+}  // namespace
 #endif
 
 ////// collapse_if_one //////
 template <typename T>
 struct collapse_if_one;
 
-template <template <class...> class PackTmpl, typename T>
-struct collapse_if_one<PackTmpl<T>> {
+template <typename T>
+struct collapse_if_one<pack<T>> {
     using type = T;
 };
 
-template <template <class...> class PackTmpl, typename... Ts>
-struct collapse_if_one<PackTmpl<Ts...>> {
-    using type = PackTmpl<Ts...>;
+template <typename... Ts>
+struct collapse_if_one<pack<Ts...>> {
+    using type = pack<Ts...>;
 };
 
 template <typename T>
@@ -670,41 +577,33 @@ using collapse_if_one_t = typename collapse_if_one<T>::type;
 namespace {
     CAV_PASS(eq<collapse_if_one_t<pack<void>>, void>);
     CAV_PASS(eq<collapse_if_one_t<pack<void, t1>>, pack<void, t1>>);
-}
+}  // namespace
 #endif
 
 ////// pack difference //////
-
 namespace detail {
-    template <typename T1, typename, typename>
+    template <typename AccT, typename T1, typename>
     struct pack_difference_impl {
-        using type = T1;
+        static_assert(eq<T1, pack<>>, "'pack_difference assumes' that it is working with 'pack'");
+        using type = AccT;
     };
 
-    template <template <class...> class Tmpl,
-              typename... AT,
-              typename T,
-              typename... T1s,
-              typename... T2s>
-    struct pack_difference_impl<Tmpl<AT...>, Tmpl<T, T1s...>, Tmpl<T2s...>> {
+    template <typename... AccTs, typename T, typename... T1s, typename PackT2>
+    struct pack_difference_impl<pack<AccTs...>, pack<T, T1s...>, PackT2>
+        : pack_difference_impl<pack<AccTs..., T>, pack<T1s...>, PackT2> {};
 
-        using type = if_t<
-            (eq_no_cvr<T, T2s> || ...),
-            typename pack_difference_impl<Tmpl<AT...>, Tmpl<T1s...>, Tmpl<T2s...>>::type,
-            typename pack_difference_impl<Tmpl<AT..., T>, Tmpl<T1s...>, Tmpl<T2s...>>::type>;
-    };
+    template <typename... AccTs, typename T, typename... T1s, typename PackT2>
+    requires(has_type_unwrap_v<T, PackT2>)
+    struct pack_difference_impl<pack<AccTs...>, pack<T, T1s...>, PackT2>
+        : pack_difference_impl<pack<AccTs...>, pack<T1s...>, PackT2> {};
+
 }  // namespace detail
 
-template <typename...>
-struct pack_difference;
+template <typename PackT1, typename PackT2>
+struct pack_difference : detail::pack_difference_impl<pack<>, PackT1, PackT2> {};
 
-template <template <class...> class Tmpl, typename... T1s, typename... T2s>
-struct pack_difference<Tmpl<T1s...>, Tmpl<T2s...>> {
-    using type = typename detail::pack_difference_impl<Tmpl<>, Tmpl<T1s...>, Tmpl<T2s...>>::type;
-};
-
-template <typename... Ts>
-using pack_difference_t = typename pack_difference<Ts...>::type;
+template <typename PackT1, typename PackT2>
+using pack_difference_t = typename detail::pack_difference_impl<pack<>, PackT1, PackT2>::type;
 
 
 #ifdef CAV_COMP_TESTS
@@ -713,7 +612,7 @@ namespace {
     CAV_PASS(eq<pack_difference_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);
     CAV_PASS(eq<pack_difference_t<pack<t1, t2>, pack<t3, t4>>, pack<t1, t2>>);
     CAV_PASS(eq<pack_difference_t<pack<>, pack<t3, t4>>, pack<>>);
-}
+}  // namespace
 #endif
 
 ////// not_copy_move_ctor //////

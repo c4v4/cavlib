@@ -35,10 +35,10 @@
 #endif
 
 /// @brief Always inline the function
-#define CAV_INLINE  [[gnu::always_inline]] // __attribute__((__always_inline__)) inline
+#define CAV_INLINE [[gnu::always_inline]]  // __attribute__((__always_inline__)) inline
 
 /// @brief Always inline the function
-#define CAV_NOINLINE  [[gnu::noinline]]
+#define CAV_NOINLINE [[gnu::noinline]]
 
 /// @brief Always inline the functions called in the specified function (clang and gcc differ!)
 #define CAV_FLATTEN [[gnu::flatten]]  // __attribute__((flatten))

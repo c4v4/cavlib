@@ -83,7 +83,7 @@ namespace detail {
         CAV_PASS(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
         CAV_PASS(enum_name_impl<TEST, 5>::name == "TEST)5");  // illegal
 
-    }
+    }  // namespace
 #endif
 
     constexpr bool ends_with(std::string_view str, std::string_view suffix) {

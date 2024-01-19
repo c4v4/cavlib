@@ -25,7 +25,7 @@ consteval void CAV_THROW(Exception e) noexcept {
     else
         fmt::print(stderr, "{}\n", e.what());
     abort();
-}
+}  // namespace
 #endif
 
 namespace cav {

@@ -77,7 +77,7 @@ namespace {
         assert(*ptr == 42);  // use after free -> UB
     });
 
-}
+}  // namespace
 #endif
 
 }  // namespace cav

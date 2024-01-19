@@ -313,7 +313,7 @@ namespace {
     });
 
 
-}
+}  // namespace
 #endif
 
 }  // namespace cav

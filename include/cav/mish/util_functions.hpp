@@ -81,7 +81,7 @@ namespace {
     CAV_PASS(check_overflow_mul(-(type_min<int> / 2), 2));
     CAV_PASS(check_overflow_mul(2, -(type_min<int> / 2)));
     CAV_PASS(!check_overflow_mul(-1, 1));
-}
+}  // namespace
 #endif
 
 [[nodiscard]] CAV_PURE constexpr int ssize(auto&& range) noexcept {
@@ -288,7 +288,7 @@ namespace {
     CAV_PASS(ilog10(100) == 2);
     CAV_PASS(ilog10(999) == 2);
     CAV_PASS(ilog10(1000) == 3);
-}
+}  // namespace
 #endif
 
 /// @brief Integer constexpr sqrt
@@ -312,7 +312,7 @@ namespace {
     CAV_PASS(isqrt(1ULL << 62ULL) == (1ULL << 31ULL));
     CAV_PASS(isqrt(~0ULL) == (~0U));
     CAV_PASS(isqrt(620607744) == (24912));
-}
+}  // namespace
 #endif
 
 /// Simple range stuff
@@ -477,7 +477,7 @@ namespace {
     CAV_PASS(last_elem(a, b, c, d, e, f) == 3.0);
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c)), int const&>);
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c, d, e, f)), float const&>);
-}
+}  // namespace
 #endif
 
 }  // namespace cav

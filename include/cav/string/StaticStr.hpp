@@ -98,7 +98,7 @@ public:
 #ifdef CAV_FOUND_FMT
     constexpr operator fmt::string_view() const {
         return {base::data(), base::size() - 1};  // remove \0
-    }
+    }                                             // namespace
 #endif
 
     [[nodiscard]] static constexpr std::size_t size() {
@@ -192,7 +192,7 @@ namespace {
     CAV_PASS(str_concat(strb, stra) == StaticStr{"ba"});
     CAV_PASS(str_concat(strc, strb) == StaticStr{"cb"});
     CAV_PASS(str_concat(stra, strb, strc) == StaticStr{"abc"});
-}
+}  // namespace
 #endif
 
 template <std::integral auto Val>
@@ -218,7 +218,7 @@ namespace {
     CAV_PASS(int_to_const_str<12345>()[3] == '4');
     CAV_PASS(int_to_const_str<12345>()[4] == '5');
     CAV_PASS(int_to_const_str<12345>()[5] == '\0');
-}
+}  // namespace
 #endif
 
 }  // namespace cav
@@ -242,7 +242,7 @@ CAV_PASS("test"_s.starts_with("t"_s));
 CAV_PASS("test"_s.starts_with("test"_s));
 CAV_FAIL("test"_s.starts_with("est"_s));
 CAV_FAIL("test"_s.starts_with("test "_s));
-}
+}  // namespace
 #endif
 
 #endif /* CAV_INCLUDE_STATICSTR_HPP */

@@ -162,7 +162,7 @@ void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = 
                    static_cast<std::string_view>(type_name<T>::name));
         on_error();
     }
-}
+}  // namespace
 #endif
 
 }  // namespace cav

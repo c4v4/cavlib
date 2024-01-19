@@ -100,16 +100,15 @@ namespace {
     CAV_PASS(not_inst_of<X<>, S>);
 
     template <typename T, auto V>
-    static constexpr bool templated_context() {
+    constexpr bool templated_context() {
         CAV_PASS(CAV_INST_OF(S, S<T>));
         CAV_PASS(CAV_INST_OF(X, X<V>));
         CAV_PASS(CAV_INST_OF(Y, Y<V, T>));
         return true;
     };
 
-    static constexpr bool unused = templated_context<int, 0>();
-
-}
+    CAV_PASS(templated_context<int, 0>());
+}  // namespace
 #endif
 
 

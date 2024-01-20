@@ -94,11 +94,28 @@ namespace {
 
 template <typename T>
 [[nodiscard]] CAV_PURE constexpr auto max(T const& v1, T const& v2) noexcept {
-    return v1 > v2 ? v1 : v2;
+    return v1 >= v2 ? v1 : v2;
 }
 
 [[nodiscard]] CAV_PURE constexpr auto max(auto const& v1, auto const& v2) noexcept {
-    return v1 > v2 ? v1 : static_cast<TYPEOF(v1)>(v2);
+    return v1 >= v2 ? v1 : static_cast<TYPEOF(v1)>(v2);
+}
+
+[[nodiscard]] CAV_CONST constexpr bool min(bool b1, bool b2) noexcept {
+    return b1 && b2;
+}
+
+template <typename T>
+[[nodiscard]] CAV_PURE constexpr auto min(T const& v1, T const& v2) noexcept {
+    return v1 <= v2 ? v1 : v2;
+}
+
+[[nodiscard]] CAV_PURE constexpr auto min(auto const& v1, auto const& v2) noexcept {
+    return v1 <= v2 ? v1 : static_cast<TYPEOF(v1)>(v2);
+}
+
+[[nodiscard]] CAV_PURE constexpr auto clip(auto const& v, auto const& lb, auto const& ub) noexcept {
+    return (lb <= v && v <= ub) ? v : (v < lb) ? lb : ub;
 }
 
 /// @brief Compute the square of a given number;
@@ -244,8 +261,8 @@ template <typename SbT = ct<0>, typename SeT = ct<type_max<int>>>
                                               int    skip_beg = {},
                                               int    skip_end = {}) {
     int c_size = std::ssize(container);
-    int b_idx  = std::min(c_size, std::max(0, skip_beg + (skip_beg >= 0 ? 0 : c_size)));
-    int e_idx  = std::min(c_size, std::max(0, skip_end + (skip_end >= 0 ? 0 : c_size)));
+    int b_idx  = clip(skip_beg + (skip_beg >= 0 ? 0 : c_size), 0, c_size);
+    int e_idx  = clip(skip_end + (skip_end >= 0 ? 0 : c_size), 0, c_size);
 
     if (b_idx > e_idx)
         return std::span{std::begin(container), std::begin(container)};
@@ -359,7 +376,7 @@ constexpr auto max_elem(auto const& container) {
 
     auto max_e = *container.begin();
     for (auto const& elem : subspan<1>(container))
-        max_e = std::max(max_e, elem);
+        max_e = cav::max(max_e, elem);
     return max_e;
 }
 
@@ -369,7 +386,7 @@ constexpr auto min_elem(auto const& container) {
 
     auto max_e = *container.begin();
     for (auto const& elem : subspan<1>(container))
-        max_e = std::min(max_e, elem);
+        max_e = cav::min(max_e, elem);
     return max_e;
 }
 

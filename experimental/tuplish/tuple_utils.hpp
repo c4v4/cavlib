@@ -275,12 +275,12 @@ tuple<Args...>& operator/=(tuple<Args...>& t1, tuple<Args...> const& t2) {
 // Specialization for tuples
 template <typename... Args>
 tuple<Args...> max(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, [](auto const& v1, auto const& v2) { return std::max(v1, v2); });
+    return elem_wise_op(t1, t2, [](auto const& v1, auto const& v2) { return max(v1, v2); });
 }
 
 template <typename... Args>
 tuple<Args...> min(tuple<Args...> const& t1, tuple<Args...> const& t2) {
-    return elem_wise_op(t1, t2, [](auto const& v1, auto const& v2) { return std::min(v1, v2); });
+    return elem_wise_op(t1, t2, [](auto const& v1, auto const& v2) { return min(v1, v2); });
 }
 
 template <typename... Args>

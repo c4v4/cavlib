@@ -40,19 +40,27 @@ template <typename K, typename V>
 struct map_elem {
     [[no_unique_address]] V value;
 
-    [[nodiscard]] constexpr V const& operator[](tag_type<K> /*k*/) const {
+    [[nodiscard]] constexpr V&& operator[](tag_type<K> /*k*/) && {
+        return std::move(value);
+    }
+
+    [[nodiscard]] constexpr V const& operator[](tag_type<K> /*k*/) const& {
         return value;
     }
 
-    [[nodiscard]] constexpr V& operator[](tag_type<K> /*k*/) {
+    [[nodiscard]] constexpr V& operator[](tag_type<K> /*k*/) & {
         return value;
     }
 
-    [[nodiscard]] constexpr V const& operator[](ct<type_name<K>::name> /*k*/) const {
+    [[nodiscard]] constexpr V&& operator[](ct<type_name<K>::name> /*k*/) && {
+        return std::move(value);
+    }
+
+    [[nodiscard]] constexpr V const& operator[](ct<type_name<K>::name> /*k*/) const& {
         return value;
     }
 
-    [[nodiscard]] constexpr V& operator[](ct<type_name<K>::name> /*k*/) {
+    [[nodiscard]] constexpr V& operator[](ct<type_name<K>::name> /*k*/) & {
         return value;
     }
 };
@@ -61,20 +69,66 @@ template <typename... Ts>
 struct type_map : Ts... {
     using Ts::operator[]...;
 
-    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const {
+    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) && {
+        return FWD(fn)(std::move(Ts::value)...);
+    }
+
+    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const& {
         return FWD(fn)(Ts::value...);
     }
 
-    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) {
+    [[nodiscard]] constexpr decl_auto reduce(auto&& fn) & {
         return FWD(fn)(Ts::value...);
     }
 
-    constexpr void for_each(auto&& fn) const {
+    constexpr void for_each(auto&& fn) && {
+        (void)(FWD(fn)(std::move(Ts::value)), ...);
+    }
+
+    constexpr void for_each(auto&& fn) const& {
         (void)(FWD(fn)(Ts::value), ...);
     }
 
-    constexpr void for_each(auto&& fn) {
+    constexpr void for_each(auto&& fn) & {
         (void)(FWD(fn)(Ts::value), ...);
+    }
+
+    constexpr void visit_idx(size_t idx, auto&& fn) && {
+        assert(idx < size());
+        reduce([&](auto&&... elems) {
+            size_t count = 0;
+            (void)((count++ == idx && (FWD(fn)(FWD(elems)), true)) || ...);
+        });
+    }
+
+    constexpr void visit_idx(size_t idx, auto&& fn) const& {
+        assert(idx < size());
+        reduce([&](auto const&... elems) {
+            size_t count = 0;
+            (void)((count++ == idx && (FWD(fn)(FWD(elems)), true)) || ...);
+        });
+    }
+
+    constexpr void visit_idx(size_t idx, auto&& fn) & {
+        assert(idx < size());
+        reduce([&](auto&... elems) {
+            int count = 0;
+            ((count++ == idx && (FWD(fn)(FWD(elems)), true)) || ...);
+        });
+    }
+
+    [[nodiscard]] static constexpr size_t size() {
+        return sizeof...(Ts);
+    }
+
+    template <typename T>
+    [[nodiscard]] explicit constexpr operator T() const& {
+        return {Ts::value...};
+    }
+
+    template <typename T>
+    [[nodiscard]] explicit constexpr operator T() && {
+        return {std::move(Ts::value)...};
     }
 };
 
@@ -93,6 +147,10 @@ namespace {
     CAV_PASS(tm1[tag<ct<2>>] == 2.0);
     CAV_PASS(tm2[tag<float>][9] == 0);
     CAV_PASS(tm3[tag<int>] == 4);
+
+    CAV_BLOCK_PASS(tm1.visit_idx(0, [](auto x) { assert(x == 1); }));
+    CAV_BLOCK_PASS(tm1.visit_idx(1, [](auto x) { assert(x == 2.0); }));
+    CAV_BLOCK_PASS(int x = static_cast<int>(tm3); assert(x == 4));
 }  // namespace
 #endif
 
@@ -125,15 +183,19 @@ namespace {
 ///////////////////////////////// TUPLE /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-template <int I, typename V>
+template <std::size_t I, typename V>
 struct tuple_elem {
     [[no_unique_address]] V value;
 
-    [[nodiscard]] constexpr V const& operator[](ct<I> /*k*/) const {
+    [[nodiscard]] constexpr V&& operator[](ct<I> /*k*/) && {
+        return std::move(value);
+    }
+
+    [[nodiscard]] constexpr V const& operator[](ct<I> /*k*/) const& {
         return value;
     }
 
-    [[nodiscard]] constexpr V& operator[](ct<I> /*k*/) {
+    [[nodiscard]] constexpr V& operator[](ct<I> /*k*/) & {
         return value;
     }
 };
@@ -151,21 +213,29 @@ namespace detail {
 template <typename... Ts>
 struct tuple : detail::make_tuple_map<Ts...>::type {};
 
+template <typename... Ts>
+tuple(Ts...) -> tuple<Ts...>;
+
 #ifdef CAV_COMP_TESTS
 namespace {
+    constexpr inline auto tp0 = tuple<>{};
     constexpr inline auto tp1 = tuple<int, float>{1, 2.0};
     constexpr inline auto tp2 = tuple<int, float[10]>{3, {}};
     constexpr inline auto tp3 = tuple<int>{4};
     constexpr inline auto tp4 = tuple<>{};
+    constexpr inline auto tp5 = tuple<int, int, int, int, int>{1, 2, 3, 4, 5};
 
+    CAV_PASS(sizeof(tp0) == 1);
     CAV_PASS(sizeof(tp1) == 8);
     CAV_PASS(sizeof(tp2) == 44);
     CAV_PASS(sizeof(tp3) == 4);
     CAV_PASS(sizeof(tp4) == 1);
     CAV_PASS(tp1[0_ct] == 1);
-    CAV_PASS(tp1[ct_v<1>] == 2.0);
+    CAV_PASS(tp1[ct_v<1_uz>] == 2.0);
     CAV_PASS(tp2[1_ct][9] == 0);
-    CAV_PASS(tp3[ct_v<int{}>] == 4);
+    CAV_PASS(tp3[ct_v<std::size_t{}>] == 4);
+
+    CAV_BLOCK_PASS(auto x = std::array<int, 5>(tp5); assert(x[1] == 2););
 }  // namespace
 #endif
 

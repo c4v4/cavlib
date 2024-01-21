@@ -92,13 +92,13 @@ namespace detail {
     }
 
     template <typename ET, std::underlying_type_t<ET> D>
-    struct compute_enum_size {
+    struct get_enum_size {
         static constexpr auto built_name = type_name<ET>::local_name + ")" + int_to_const_str<D>();
         static constexpr size_t value    = [] {
             if constexpr (ends_with(enum_name_impl<ET, D>::name, built_name))
                 return D;
             else
-                return compute_enum_size<ET, D + 1>::value;
+                return get_enum_size<ET, D + 1>::value;
         }();
     };
 }  // namespace detail
@@ -106,11 +106,10 @@ namespace detail {
 /// @brief Create a map from enum values to their names
 template <typename ET>
 constexpr auto make_enum_name_map() {
-    constexpr size_t e_size = detail::compute_enum_size<ET, 0>::value;
+    constexpr size_t e_size = detail::get_enum_size<ET, 0>::value;
     auto             res    = std::array<char const*, e_size>{};
-    [&]<size_t... Is>(std::index_sequence<Is...>) {
-        ((res[Is] = detail::enum_name_impl<ET, Is>::cs_name.data()), ...);
-    }(std::make_index_sequence<e_size>{});
+    for_each_idx<e_size>(
+        [&]<auto I>(ct<I>) { res[I] = detail::enum_name_impl<ET, I>::cs_name.data(); });
     return res;
 }
 

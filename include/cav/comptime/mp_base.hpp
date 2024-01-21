@@ -73,7 +73,7 @@ struct value_wrap<T> {
 };
 
 template <typename T>
-value_wrap(T val) -> value_wrap<T>;
+value_wrap(T val) -> value_wrap<no_cvr<T>>;
 
 // And for compile-time c arrays
 template <typename T, auto N>
@@ -112,12 +112,16 @@ template <value_wrap X>
 static constexpr auto ct_v = ct<X>{};
 
 template <char... Cs>
-[[nodiscard]] constexpr auto operator""_ct() {
-    constexpr int num = [] {
-        int n = 0;
+[[nodiscard]] constexpr std::size_t operator""_uz() {
+    return [] {
+        std::size_t n = 0;
         return ((n = n * 10 + (Cs - '0')), ..., n);
     }();
-    return ct_v<num>;
+}
+
+template <char... Cs>
+[[nodiscard]] constexpr auto operator""_ct() {
+    return ct_v<operator""_uz<Cs...>()>;
 }
 
 /// @brief Simple struct that inherits from all its template parameters

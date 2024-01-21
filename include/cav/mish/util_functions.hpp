@@ -290,7 +290,7 @@ template <typename ContainerT>
 
 /// @brief Integer constexpt base 10 log
 template <std::integral T>
-constexpr auto ilog10(T val) {
+[[nodiscard]] constexpr auto ilog10(T val) {
     T result = 0;
     while ((val /= 10) != 0)
         ++result;
@@ -343,34 +343,34 @@ constexpr void iota(auto& container, T start, T const& step = 1) noexcept {
 }
 
 template <typename T>
-constexpr cav::OwnSpan<T> make_iota(T start, T end, T const& step = 1) noexcept {
+[[nodiscard]] constexpr cav::OwnSpan<T> make_iota(T start, T end, T const& step = 1) noexcept {
     auto container = cav::OwnSpan<T>((end - start) / step);
     cav::iota(container, start, step);
     return container;
 }
 
 template <template <class...> class ContTmpl, typename T>
-constexpr ContTmpl<T> make_iota(T start, T end, T const& step = 1) noexcept {
+[[nodiscard]] constexpr ContTmpl<T> make_iota(T start, T end, T const& step = 1) noexcept {
     auto container = ContTmpl<T>((end - start) / step);
     cav::iota(container, start, step);
     return container;
 }
 
 template <typename ContT, typename T>
-constexpr ContT make_iota(T start, T end, T step = 1) noexcept {
+[[nodiscard]] constexpr ContT make_iota(T start, T end, T step = 1) noexcept {
     auto container = ContT((end - start) / step);
     cav::iota(container, start, step);
     return container;
 }
 
-constexpr size_t find_idx(auto const& container, auto const& value) {
+[[nodiscard]] constexpr size_t find_idx(auto const& container, auto const& value) {
     for (size_t i = 0; i < container.size(); ++i)
         if (container[i] == value)
             return i;
     return container.size();
 }
 
-constexpr auto max_elem(auto const& container) {
+[[nodiscard]] constexpr auto max_elem(auto const& container) {
     if (std::empty(container))
         return cav::no_cvr<decltype(*container.begin())>{};
 
@@ -380,7 +380,7 @@ constexpr auto max_elem(auto const& container) {
     return max_e;
 }
 
-constexpr auto min_elem(auto const& container) {
+[[nodiscard]] constexpr auto min_elem(auto const& container) {
     if (std::empty(container))
         return cav::no_cvr<decltype(*container.begin())>{};
 
@@ -410,6 +410,25 @@ template <auto Default>
 
 [[nodiscard]] constexpr decl_auto last_elem(auto&&... args) {
     return (detail::identity(FWD(args)), ...);
+}
+
+/// @brief In some places C++ does not applies the implicit conversion that otherwise applies in any
+/// other place. Less implicit conversion is good, but not when it break what one expects, like when
+/// one use aggregates and double cannot be casted into float for example when using aggregate
+/// initialization. This cast simply use the implicit cast that works in the other places (making in
+/// essence an explicit-cast that works only when the implicit cast works).
+/// @tparam To
+/// @tparam From
+template <typename To, typename From>
+requires std::is_compound_v<From>
+copy_ref_t<From, To> implicit_cast(From&& x) {
+    return FWD(x);
+}
+
+template <typename To, typename From>
+requires std::is_fundamental_v<From>
+To implicit_cast(From x) {
+    return x;
 }
 
 #ifdef CAV_COMP_TESTS
@@ -470,8 +489,8 @@ namespace {
 
 
     // first_elem
-    static constexpr int   a = 1, b = 2, c = 3;
-    static constexpr float d = 1.0, e = 2.0, f = 3.0;
+    constexpr inline int   a = 1, b = 2, c = 3;
+    constexpr inline float d = 1.0, e = 2.0, f = 3.0;
 
     CAV_PASS(first_elem(1, 2, 3) == 1);
     CAV_PASS(first_elem(1.0, 2U, 3.3F, 5LLU) == 1.0);
@@ -496,6 +515,20 @@ namespace {
     CAV_PASS(cav::eq<decltype(last_elem(a, b, c, d, e, f)), float const&>);
 }  // namespace
 #endif
+
+template <int64_t N>
+constexpr void for_each_idx(auto&& fn) {
+    if constexpr (N > 0)
+        [&fn]<std::size_t... Is>(std::index_sequence<Is...>) {
+            (FWD(fn)(ct_v<Is>), ...);
+        }(std::make_index_sequence<N>{});
+}
+
+constexpr void for_each_elem(auto&& fn, auto&&... elems) {
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        (FWD(fn)(ct_v<Is>, FWD(elems)), ...);
+    }(std::make_index_sequence<sizeof...(elems)>{});
+}
 
 }  // namespace cav
 

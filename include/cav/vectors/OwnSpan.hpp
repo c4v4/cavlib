@@ -58,12 +58,19 @@ struct AllocatorDel {
 template <typename T, class Deleter = AllocatorDel<T>>
 class OwnSpan {
 public:
-    using self            = OwnSpan;
-    using value           = T;
-    using reference       = T&;
-    using pointer         = T*;
-    using const_reference = T const&;
-    using const_pointer   = T const*;
+    using self                   = OwnSpan;
+    using value_type             = T;
+    using reference              = T&;
+    using pointer                = T*;
+    using const_reference        = T const&;
+    using const_pointer          = T const*;
+    using iterator               = pointer;
+    using const_iterator         = const pointer;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using reverse_iterator       = std::reverse_iterator<iterator>;
+    using size_type              = size_t;
+    using difference_type        = ptrdiff_t;
+
 
     constexpr OwnSpan() = default;
 
@@ -129,11 +136,17 @@ public:
         if (std::addressof(other) == this)
             return *this;
 
+        if (sz == other.sz) {
+            for (size_t i = 0; i < sz; ++i)
+                ptr[i] = other[i];
+            return *this;
+        }
+
         _free();
-        ptr = other.sz > 0 ? new T[other.sz] : nullptr;
         sz  = other.sz;
+        ptr = sz > 0 ? _default_allocate(sz) : nullptr;
         for (size_t i = 0; i < sz; ++i)
-            ptr[i] = other[i];
+            std::construct_at(ptr + i, other[i]);
 
         return *this;
     }
@@ -252,8 +265,8 @@ OwnSpan(S, T) -> OwnSpan<T, AllocatorDel<T>>;
 #ifdef CAV_COMP_TESTS
 namespace {
 
-    static constexpr int  buff[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-    static constexpr auto ospan   = OwnSpan(buff, 8, nop);  // equivalent to std::span
+    constexpr inline int  buff[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+    constexpr inline auto ospan   = OwnSpan(buff, 8, nop);  // equivalent to std::span
 
     // Test sizes
     CAV_PASS(16 == sizeof(OwnSpan<int>));

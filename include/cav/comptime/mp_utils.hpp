@@ -16,6 +16,8 @@
 #ifndef CAV_INCLUDE_MP_UTILS_HPP
 #define CAV_INCLUDE_MP_UTILS_HPP
 
+#include <type_traits>
+
 #include "../comptime/mp_base.hpp"
 #include "../comptime/syntactic_sugars.hpp"
 #include "../comptime/test.hpp"
@@ -115,20 +117,6 @@ namespace {
 }  // namespace
 #endif
 
-/////// nth_type ///////
-/// @brief Nth type of a pack, like std::tuple_element<N, std::tuple<Ts...>> but
-/// standalone (to avoid the imposition of tuple includes)
-#if __has_builtin(__type_pack_element)
-template <std::size_t N, typename... Ts>
-struct nth_type {
-    using type = __type_pack_element<N, Ts...>;
-};
-
-template <std::size_t N, typename... Ts>
-using nth_type_t = __type_pack_element<N, Ts...>;
-
-#else
-
 // Improve readibility of nth_type
 namespace detail {
     template <std::size_t>
@@ -160,6 +148,20 @@ namespace {
     CAV_PASS(!nth_arg<2>(0, "1", false));
 }  // namespace
 #endif
+
+/////// nth_type ///////
+/// @brief Nth type of a pack, like std::tuple_element<N, std::tuple<Ts...>> but
+/// standalone (to avoid the imposition of tuple includes)
+#if __has_builtin(__type_pack_element)
+template <std::size_t N, typename... Ts>
+struct nth_type {
+    using type = __type_pack_element<N, Ts...>;
+};
+
+template <std::size_t N, typename... Ts>
+using nth_type_t = __type_pack_element<N, Ts...>;
+
+#else
 
 template <std::size_t N, typename... Ts>
 struct nth_type {
@@ -619,6 +621,78 @@ namespace {
 /// @brief Exclude copy and move constructor when using forwarding references.
 template <typename T, typename... Ts>
 concept not_copy_move_ctor = (sizeof...(Ts) > 1 || !eq_no_cvr<first_type_t<Ts...>, T>);
+
+//////// copy type qualifiers between types //////
+template <typename FromT, typename ToT>
+struct copy_const {
+    using type = ToT;
+};
+
+template <typename FromT, typename ToT>
+struct copy_const<const FromT, ToT> {
+    using type = const ToT;
+};
+
+template <typename FromT, typename ToT>
+using copy_const_t = typename copy_const<FromT, ToT>::type;
+
+template <typename FromT, typename ToT>
+struct copy_vol {
+    using type = ToT;
+};
+
+template <typename FromT, typename ToT>
+struct copy_vol<volatile FromT, ToT> {
+    using type = volatile ToT;
+};
+
+template <typename FromT, typename ToT>
+using copy_vol_t = typename copy_vol<FromT, ToT>::type;
+
+template <typename FromT, typename ToT>
+struct copy_ref {
+    using type = ToT;
+};
+
+template <typename FromT, typename ToT>
+struct copy_ref<FromT&, ToT> {
+    using type = ToT&;
+};
+
+template <typename FromT, typename ToT>
+struct copy_ref<FromT&&, ToT> {
+    using type = ToT&&;
+};
+
+template <typename FromT, typename ToT>
+using copy_ref_t = typename copy_ref<FromT, ToT>::type;
+
+template <typename FromT, typename ToT>
+struct copy_cvref {
+    using from_no_ref = std::remove_reference_t<FromT>;
+    using type        = copy_ref_t<FromT, copy_const_t<from_no_ref, copy_vol_t<from_no_ref, ToT>>>;
+};
+
+template <typename FromT, typename ToT>
+using copy_cvref_t = typename copy_cvref<FromT, ToT>::type;
+
+#ifdef CAV_COMP_TESTS
+namespace {
+    CAV_PASS(eq<copy_const_t<char, int>, int>);
+    CAV_PASS(eq<copy_const_t<char const, int>, int const>);
+    CAV_PASS(eq<copy_vol_t<char, int>, int>);
+    CAV_PASS(eq<copy_vol_t<char volatile, int>, int volatile>);
+    CAV_PASS(eq<copy_ref_t<char, int>, int>);
+    CAV_PASS(eq<copy_ref_t<char&, int>, int&>);
+    CAV_PASS(eq<copy_ref_t<char&&, int>, int&&>);
+    CAV_PASS(eq<copy_cvref_t<char, int>, int>);
+    CAV_PASS(eq<copy_cvref_t<char const, int>, int const>);
+    CAV_PASS(eq<copy_cvref_t<char volatile, int>, int volatile>);
+    CAV_PASS(eq<copy_cvref_t<char const&, int>, int const&>);
+    CAV_PASS(eq<copy_cvref_t<char const&&, int>, int const&&>);
+    CAV_PASS(eq<copy_cvref_t<char const volatile&&, int>, int const volatile&&>);
+}  // namespace
+#endif
 
 
 }  // namespace cav

@@ -13,16 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_INCLUDE_UTILS_SOASPAN_HPP
-#define CAV_INCLUDE_UTILS_SOASPAN_HPP
+#ifndef CAV_INCLUDE_UTILS_SOAARRAY_HPP
+#define CAV_INCLUDE_UTILS_SOAARRAY_HPP
 
-#include <bits/utility.h>
+#include <memory>
 
-#include <vector>
-
-#include "../../include/cav/comptime/instance_of.hpp"
+#include "../../include/cav/comptime/test.hpp"
 #include "../../include/cav/mish/util_functions.hpp"
 #include "../tuplish/tuple.hpp"
+#include "IndexProxyIter.hpp"
 
 namespace cav {
 
@@ -30,13 +29,13 @@ struct soa_tag;
 struct aos_tag;
 
 template <typename, typename...>
-class SoASpan;
+class SoAArray;
 
-/// @brief SoASpan specialization for Array of structures. This is the simple
+/// @brief SoAArray specialization for Array of structures. This is the simple
 /// case, just inheriting from a OwnSpan of tuples.
 /// @tparam ...Ts
 template <typename... Ts>
-class SoASpan<aos_tag, Ts...> : public OwnSpan<tuple<Ts...>> {
+class SoAArray<aos_tag, Ts...> : public OwnSpan<tuple<Ts...>> {
 public:
     using value_type     = tuple<Ts...>;
     using base           = OwnSpan<value_type>;
@@ -44,68 +43,121 @@ public:
 
     using base::base;
 
-    constexpr SoASpan() = default;
+    constexpr SoAArray() = default;
 
-    constexpr SoASpan(std::size_t sz, auto&&... args)
-    requires(sizeof...(args) == sizeof...(Ts))
-        : base(sz, value_type{implicit_cast<Ts>(FWD(args))...}) {
-    }
-
-    constexpr void assign(std::size_t n, auto&&... args)
-    requires(sizeof...(args) == sizeof...(Ts))
-    {
-        base::assign(n, value_type{implicit_cast<Ts>(FWD(args))...});
-    }
-
-    constexpr decl_auto emplace(const_iterator pos, auto&&... args) {
-        return base::emplace(pos, value_type{implicit_cast<Ts>(FWD(args))...});
-    }
-
-    constexpr decl_auto emplace_back(auto&&... args) {
-        return base::emplace_back(value_type{implicit_cast<Ts>(FWD(args))...});
+    template <std::input_iterator ItT>
+    constexpr SoAArray(ItT first, ItT last)
+        : base{std::distance(first, last), [&](auto& me) {
+                   size_t i  = 0;
+                   ItT    it = first;
+                   while (it != last) {
+                       std::construct_at(&me[i], *it);
+                       ++it, ++i;
+                   }
+               }} {
     }
 };
 
 //////////
 
-template <typename SV, typename = void>
-struct TupleProxy;
+template <typename, typename>
+struct TupleProxyLRef;
 
-template <typename... Ts, std::size_t... Is>
-struct TupleProxy<SoASpan<soa_tag, Ts...>, std::index_sequence<Is...>> {
+template <typename ST, std::size_t... Is>
+struct TupleProxyLRef<ST, std::index_sequence<Is...>> {
 
-    using self       = TupleProxy;
-    using soa_span_t = SoASpan<soa_tag, Ts...>;
-    using tup_type   = typename soa_span_t::value_type;
+    using self        = TupleProxyLRef;
+    using soa_array_t = ST;
+    using tup_type    = typename soa_array_t::value_type;
 
-    size_t      idx;
-    soa_span_t* soa_span;
+    size_t       idx;
+    soa_array_t* soa_array;
 
-    struct MovingTuple : TupleProxy {
+    struct TupleProxyRRef : TupleProxyLRef {
+
+        [[nodiscard]] constexpr decl_auto operator[](auto i) const {
+            return std::move(soa_array->base[i][idx]);
+        }
+
+        [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const {
+            return FWD(fn)(std::move((*this)[ct_v<Is>])...);
+        }
+
+        constexpr void for_each(auto&& fn) const {
+            (void)((FWD(fn)(std::move((*this)[ct_v<Is>])), ...));
+        }
+
+        constexpr void visit_idx(size_t idx, auto&& fn) const {
+            assert(idx < size());
+            size_t count = 0;
+            (void)((count++ == idx && (FWD(fn)(std::move((*this)[ct_v<Is>])), true)) || ...);
+        }
+
         template <typename T>
         [[nodiscard]] constexpr operator T() {
             return {std::move((*this)[ct_v<Is>])...};
         }
     };
 
-    constexpr self& operator=(self other) noexcept {
+    struct TupleProxyPtr {
+        TupleProxyLRef ref;
+
+        [[nodiscard]] constexpr TupleProxyLRef const& operator*() const {
+            return ref;
+        }
+
+        [[nodiscard]] constexpr TupleProxyLRef const* operator->() const {
+            return &ref;
+        }
+
+        [[nodiscard]] constexpr auto operator<=>(TupleProxyPtr const& other) const {
+            auto mid_res = ref.soa_array <=> other.ref.soa_array;
+            if (std::is_eq(mid_res))
+                return ref.idx <=> other.ref.idx;
+            return mid_res;
+        }
+
+        [[nodiscard]] constexpr bool operator==(TupleProxyPtr const& other) const {
+            return ref.soa_array == other.ref.soa_array && ref.idx == other.ref.idx;
+        }
+    };
+
+    using pointer          = TupleProxyPtr;
+    using const_pointer    = TupleProxyLRef<const ST, std::index_sequence<Is...>>::TupleProxyPtr;
+    using rvalue_reference = TupleProxyRRef;
+    using const_rvalue_reference = TupleProxyLRef<const ST,
+                                                  std::index_sequence<Is...>>::TupleProxyRRef;
+
+    constexpr TupleProxyLRef(size_t c_idx, ST* c_soa_array)
+        : idx(c_idx)
+        , soa_array(c_soa_array) {
+    }
+
+    constexpr TupleProxyLRef(self const& other) = default;
+
+    constexpr TupleProxyLRef(TupleProxyRRef other)
+        : idx(other.idx)
+        , soa_array(other.soa_array) {
+    }
+
+    constexpr self const& operator=(self other) const {
         (void)(((*this)[ct_v<Is>] = other[ct_v<Is>]), ...);
         return *this;
     }
 
     // Explicit to enable assignment with {}-list
-    constexpr self& operator=(tup_type const& tup) {
+    constexpr self const& operator=(tup_type const& tup) const {
         (void)(((*this)[ct_v<Is>] = tup[ct_v<Is>]), ...);
         return *this;
     }
 
-    constexpr self& operator=(MovingTuple other) {
+    constexpr self const& operator=(TupleProxyRRef other) const {
         (void)(((*this)[ct_v<Is>] = std::move(other[ct_v<Is>])), ...);
         return *this;
     }
 
-    [[nodiscard]] constexpr MovingTuple get_move_ref() const {
-        return {idx, soa_span};
+    [[nodiscard]] constexpr operator TupleProxyRRef() const {
+        return {*this};
     }
 
     [[nodiscard]] constexpr operator tup_type() const {
@@ -113,7 +165,7 @@ struct TupleProxy<SoASpan<soa_tag, Ts...>, std::index_sequence<Is...>> {
     }
 
     [[nodiscard]] constexpr decl_auto operator[](auto i) const {
-        return soa_span->base[i][idx];
+        return soa_array->base[i][idx];
     }
 
     [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const {
@@ -138,41 +190,38 @@ struct TupleProxy<SoASpan<soa_tag, Ts...>, std::index_sequence<Is...>> {
     [[nodiscard]] explicit constexpr operator T() const {
         return {(*this)[ct_v<Is>]...};
     }
+
+    [[nodiscard]] constexpr pointer operator&() const {
+        return pointer{*this};
+    }
 };
 }  // namespace cav
 
 namespace std {
-template <typename SoAT, typename ISeqT>
-[[nodiscard]] constexpr auto move(::cav::TupleProxy<SoAT, ISeqT>& ref) {
-    return ref.get_move_ref();
-}
-
-template <typename SoAT, typename ISeqT>
-[[nodiscard]] constexpr auto move(::cav::TupleProxy<SoAT, ISeqT>&& ref) {
-    return ref.get_move_ref();
+template <typename ST, typename ISeqT>
+[[nodiscard]] constexpr auto move(::cav::TupleProxyLRef<ST, ISeqT> ref)
+    -> decltype(ref)::TupleProxyRRef {
+    return ref;
 }
 
 }  // namespace std
 
 namespace cav {
 
-template <typename>
-struct SoAIterator;
-
-/// @brief SoASpan specialization for Structure of arrays.
+/// @brief SoAArray specialization for Structure of arrays.
 ///        TODO(cava): add support for resize (make it vector-like)
 ///        TODO(cava): add support for custom allocators (will I ever use them tho?)
 template <typename... Ts>
-class SoASpan<soa_tag, Ts...> {
+class SoAArray<soa_tag, Ts...> {
 public:
-    using self                   = SoASpan;
+    using self                   = SoAArray;
     using value_type             = tuple<Ts...>;
-    using pointer                = tuple<Ts*...>;
-    using const_pointer          = tuple<Ts const*...>;
-    using reference              = TupleProxy<self, std::index_sequence_for<Ts...>>;
-    using const_reference        = TupleProxy<self const, std::index_sequence_for<Ts...>>;
-    using iterator               = SoAIterator<self>;
-    using const_iterator         = SoAIterator<self const>;
+    using reference              = TupleProxyLRef<self, std::index_sequence_for<Ts...>>;
+    using const_reference        = TupleProxyLRef<self const, std::index_sequence_for<Ts...>>;
+    using pointer                = reference::pointer;
+    using const_pointer          = reference::const_pointer;
+    using iterator               = IndexProxyIter<self>;
+    using const_iterator         = IndexProxyIter<self const>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using size_type              = size_t;
@@ -183,14 +232,14 @@ public:
 
     struct soa_base {
 
-        static constexpr auto t_sizes = std::array<size_t, ntypes>{sizeof(Ts)...};
-        static constexpr auto t_align = std::array<size_t, ntypes>{alignof(Ts)...};
+        static constexpr auto t_sizes           = std::array<size_t, ntypes>{sizeof(Ts)...};
+        static constexpr auto t_align           = std::array<size_t, ntypes>{alignof(Ts)...};
+        using base_pointer                      = tuple<Ts*...>;
+        [[no_unique_address]] base_pointer ptrs = {};
+        size_t                             sz   = {};
 
-        [[no_unique_address]] pointer ptrs = {};
-        size_t                        sz   = {};
-
-        constexpr pointer allocate(size_t n) {
-            auto ptr = pointer{};
+        constexpr base_pointer allocate(size_t n) {
+            auto ptr = base_pointer{};
             ptr.for_each([n]<class T>(T*& ptr) { ptr = std::allocator<T>{}.allocate(n); });
             return ptr;
         }
@@ -230,16 +279,16 @@ public:
             });
         }
 
-        constexpr soa_base(size_t n, auto&&... args)
+        constexpr soa_base(size_t n, auto const&... args)
             : ptrs{allocate(n)}
             , sz{n} {
 
             for_each_elem(
-                [&](auto i, auto&& x) {
+                [&](auto i, auto const& x) {
                     for (size_t j = 0; j < sz; ++j)
-                        std::construct_at(ptrs[i] + j, FWD(x));
+                        std::construct_at(ptrs[i] + j, x);
                 },
-                FWD(args)...);
+                args...);
         }
 
         constexpr soa_base(soa_base const& other)
@@ -255,6 +304,15 @@ public:
         constexpr soa_base(soa_base&& other) noexcept
             : ptrs{std::exchange(other.ptrs, nullptr)}
             , sz{std::exchange(other.sz, 0)} {
+        }
+
+        constexpr soa_base(std::input_iterator auto first, std::input_iterator auto last)
+            : sz(std::distance(first, last)) {
+            ptrs = allocate(sz);
+            for (int j = 0; auto& tup : std::span(first, last)) {
+                for_each_idx<ntypes>([&](auto i) { std::construct_at(ptrs[i] + j, tup[i]); });
+                ++j;
+            }
         }
 
         constexpr soa_base& operator=(soa_base const& other) {
@@ -308,39 +366,13 @@ public:
 
 
 public:
-    constexpr SoASpan() = default;
+    constexpr SoAArray() = default;
 
-    constexpr SoASpan(size_type sz)
-        : base{sz} {
-    }
-
-    constexpr SoASpan(size_type sz, auto&&... args)
-    requires(sizeof...(args) == ntypes)
-        : base(sz, FWD(args)...) {
-    }
-
-    constexpr SoASpan(size_type sz, auto const& tup)
-        : base{sz, tup} {
-    }
-
-    template <typename InputIter>
-    constexpr SoASpan(InputIter first, InputIter last) {
-        insert(begin(), first, last);
+    constexpr SoAArray(auto&&... args)
+        : base(FWD(args)...) {
     }
 
     // Element access
-    [[nodiscard]] constexpr auto at(size_type idx) {
-        if (idx >= size())
-            throw std::out_of_range{"SoASpan::at"};
-        return (*this)[idx];
-    }
-
-    [[nodiscard]] constexpr auto at(size_type idx) const {
-        if (idx >= size())
-            throw std::out_of_range{"SoASpan::at"};
-        return (*this)[idx];
-    }
-
     [[nodiscard]] constexpr reference operator[](size_t idx) noexcept {
         assert(idx < size());
         return {idx, this};
@@ -368,60 +400,36 @@ public:
     }
 
     [[nodiscard]] constexpr pointer data() {
-        return base.reduce([&](auto&... vs) { return pointer{vs.data()...}; });
+        return {reference{0, this}};
     }
 
     [[nodiscard]] constexpr const_pointer data() const {
-        return base.reduce([&](auto const&... vs) { return const_pointer{vs.data()...}; });
+        return {const_reference{0, this}};
     }
 
     // Iterators
-    [[nodiscard]] constexpr auto begin() {
-        return iterator{0, this};
+    [[nodiscard]] constexpr iterator begin() {
+        return {0, this};
     }
 
-    [[nodiscard]] constexpr auto begin() const {
-        return const_iterator{0, this};
+    [[nodiscard]] constexpr const_iterator begin() const {
+        return {0, this};
     }
 
-    [[nodiscard]] constexpr auto cbegin() const {
-        return const_iterator{0, this};
+    [[nodiscard]] constexpr iterator end() {
+        return {size(), this};
     }
 
-    [[nodiscard]] constexpr auto end() {
-        return iterator{size(), this};
-    }
-
-    [[nodiscard]] constexpr auto end() const {
-        return const_iterator{size(), this};
-    }
-
-    [[nodiscard]] constexpr auto cend() const {
-        return const_iterator{size(), this};
-    }
-
-    [[nodiscard]] constexpr auto rbegin() {
-        return reverse_iterator{0, this};
-    }
-
-    [[nodiscard]] constexpr auto crbegin() const {
-        return const_reverse_iterator{0, this};
-    }
-
-    [[nodiscard]] constexpr auto rend() {
-        return reverse_iterator{size(), this};
-    }
-
-    [[nodiscard]] constexpr auto crend() const {
-        return const_reverse_iterator{size(), this};
+    [[nodiscard]] constexpr const_iterator end() const {
+        return {size(), this};
     }
 
     // Capacity
-    [[nodiscard]] constexpr auto empty() {
+    [[nodiscard]] constexpr bool empty() {
         return size() == 0;
     }
 
-    [[nodiscard]] constexpr auto size() const {
+    [[nodiscard]] constexpr size_type size() const {
         return base.sz;
     }
 
@@ -434,132 +442,28 @@ public:
     }
 };
 
-template <inst_of<SoASpan> SV>
-struct SoAIterator<SV> {
-    using self              = SoAIterator;
-    using iterator_category = typename std::random_access_iterator_tag;
-    using difference_type   = ptrdiff_t;
-    using value_type        = typename SV::reference;
-    using pointer           = value_type*;
-    using reference         = value_type&;
-
-    std::size_t idx;
-    SV*         soa_vec;
-
-    [[nodiscard]] constexpr operator SoAIterator<const SV>() const {
-        return {idx, soa_vec};
-    }
-
-    [[nodiscard]] constexpr decl_auto operator*() const {
-        return soa_vec->operator[](idx);
-    }
-
-    [[nodiscard]] constexpr decl_auto operator[](ptrdiff_t n) const {
-        return (*soa_vec)[idx + n];
-    }
-
-    constexpr self& operator++() {
-        ++idx;
-        return *this;
-    }
-
-    constexpr self operator++(int) {
-        ++idx;
-        return {idx - 1, soa_vec};
-    }
-
-    constexpr self& operator--() {
-        --idx;
-        return *this;
-    }
-
-    constexpr self operator--(int) {
-        --idx;
-        return {idx + 1, soa_vec};
-    }
-
-    constexpr self& operator+=(ptrdiff_t n) {
-        idx += n;
-        return *this;
-    }
-
-    constexpr self& operator-=(ptrdiff_t n) {
-        idx -= n;
-        return *this;
-    }
-
-    [[nodiscard]] constexpr ptrdiff_t operator-(self other) const {
-        assert(soa_vec == other.soa_vec);
-        return idx - other.idx;
-    }
-
-    [[nodiscard]] constexpr bool operator==(self other) const {
-        assert(soa_vec == other.soa_vec);
-        return idx == other.idx;
-    }
-
-    [[nodiscard]] constexpr auto operator<=>(self other) const {
-        assert(soa_vec == other.soa_vec);
-        return idx <=> other.idx;
-    }
-};
-
-template <inst_of<SoASpan> SV>
-SoAIterator<SV> operator+(SoAIterator<SV> iter, ptrdiff_t n) {
-    return iter += n;
-}
-
-template <inst_of<SoASpan> SV>
-SoAIterator<SV> operator+(ptrdiff_t n, SoAIterator<SV> iter) {
-    return iter += n;
-}
-
-template <inst_of<SoASpan> SV>
-SoAIterator<SV> operator-(SoAIterator<SV> iter, ptrdiff_t n) {
-    return iter -= n;
-}
-
-template <inst_of<SoASpan> SV>
-SoAIterator<SV> operator-(ptrdiff_t n, SoAIterator<SV> iter) {
-    return iter -= n;
-}
-
-static_assert(std::random_access_iterator<SoAIterator<SoASpan<soa_tag, int>>>);
-
-template <typename SV1, typename SV2>
-void swap(cav::TupleProxy<SV1> r1, cav::TupleProxy<SV2> r2) {
-    using value_type = typename SV1::value_type;
-    static_assert(std::same_as<value_type, typename SV2::value_type>);
-    for_each_idx<value_type::size()>([&](auto i) { std::swap(r1[i], r2[i]); });
-}
-
-
 #ifdef CAV_COMP_TESTS
 namespace {
 
-    using aos0 = SoASpan<aos_tag>;
-    using aos1 = SoASpan<aos_tag, int>;
-    using aos2 = SoASpan<aos_tag, int, int>;
-    using aos3 = SoASpan<aos_tag, int, double, std::vector<int>>;
+    using aos0 = SoAArray<aos_tag>;
+    using soa0 = SoAArray<soa_tag>;
+    using aos1 = SoAArray<aos_tag, int>;
+    using soa1 = SoAArray<soa_tag, int>;
+    using aos2 = SoAArray<aos_tag, int, int>;
+    using soa2 = SoAArray<soa_tag, int, int>;
+    using aos3 = SoAArray<aos_tag, int, double, std::vector<int>>;
+    using soa3 = SoAArray<soa_tag, int, double, std::vector<int>>;
 
     CAV_PASS(sizeof(aos0) == 16);
-    CAV_PASS(sizeof(aos1) == 16);
-    CAV_PASS(sizeof(aos2) == 16);
-    CAV_PASS(sizeof(aos3) == 16);
-
-    using soa0 = SoASpan<soa_tag>;
-    using soa1 = SoASpan<soa_tag, int>;
-    using soa2 = SoASpan<soa_tag, int, int>;
-    using soa3 = SoASpan<soa_tag, int, double, std::vector<int>>;
-
     CAV_PASS(sizeof(soa0) == 8);
+    CAV_PASS(sizeof(aos1) == 16);
     CAV_PASS(sizeof(soa1) == 16);
+    CAV_PASS(sizeof(aos2) == 16);
     CAV_PASS(sizeof(soa2) == 24);
+    CAV_PASS(sizeof(aos3) == 16);
     CAV_PASS(sizeof(soa3) == 32);
-
     CAV_PASS(eq<typename aos3::value_type, typename soa3::value_type>)
     CAV_PASS(eq<typename aos0::value_type, typename soa0::value_type>)
-
     CAV_PASS((aos3{1, tuple{1, 2.0, std::vector<int>{1, 2, 3}}}[0][1_ct] == 2.0));
     CAV_PASS((soa3{1, tuple{1, 2.0, std::vector<int>{1, 2, 3}}}[0][2_ct][1] == 2));
 
@@ -576,20 +480,29 @@ namespace {
             ++i;
         }
 
-        a3[0]  = {1, .0, std::vector<int>{1, 2, 3}};
-        a3[1]  = tuple{2, 0.2, std::vector<int>{4, 5, 6}};
-        a3[2]  = a3[1];
-        a3[3]  = std::move(a3[2]);
-        auto x = struct_of_3(a3[3]);
-        auto y = struct_of_3(std::move(a3[3]));
+        a3[0]          = {1, .0, std::vector<int>{1, 2, 3}};
+        a3[1]          = tuple{2, 0.2, std::vector<int>{4, 5, 6}};
+        a3[2]          = a3[1];
+        a3[3]          = std::move(a3[2]);
+        auto x         = struct_of_3(a3[3]);
+        auto y         = struct_of_3(std::move(a3[3]));
+        a3[4][2_ct][2] = 999;
+        std::swap(a3[4][2_ct], a3[5][2_ct]);
 
         assert(a3[0][0_ct] == 1 && a3[0][1_ct] == 0.0 && a3[0][2_ct][0] == 1);
         assert(a3[1][0_ct] == 2 && a3[1][1_ct] == 0.2 && a3[1][2_ct][0] == 4);
         assert(a3[2][0_ct] == 2 && a3[2][1_ct] == 0.2 && a3[2][2_ct].empty());  // moved
         assert(a3[3][0_ct] == 2 && a3[3][1_ct] == 0.2 && a3[3][2_ct].empty());  // moved
-        assert(a3[4][0_ct] == 4 && a3[4][1_ct] == 0.4 && a3[4][2_ct][2] == 6);
+        assert(a3[4][0_ct] == 4 && a3[4][1_ct] == 0.4 && a3[4][2_ct][2] == 7);
+        assert(a3[5][0_ct] == 5 && a3[5][1_ct] == 0.5 && a3[5][2_ct][2] == 999);  // swapped
         assert(x.x == 2 && x.y == 0.2 && x.z[0] == 4);
         assert(y.x == 2 && y.y == 0.2 && y.z[0] == 4);
+
+        auto s3 = soa3{a3.begin(), a3.end()};
+        assert(s3.size() == a3.size());
+        assert(s3[0][0_ct] == a3[0][0_ct]);
+        assert(s3[1][1_ct] == a3[1][1_ct]);
+        assert(s3[2][2_ct].size() == a3[2][2_ct].size());
     });
 
     CAV_BLOCK_PASS({
@@ -599,23 +512,41 @@ namespace {
             ++i;
         }
 
-        s3[0]  = {1, .0, std::vector<int>{1, 2, 3}};
-        s3[1]  = tuple{2, 0.2, std::vector<int>{4, 5, 6}};
-        s3[2]  = s3[1];
-        s3[3]  = std::move(s3[2]);
-        auto x = struct_of_3(s3[3]);
-        auto y = struct_of_3(std::move(s3[3]));
+        s3[0]          = {1, .0, std::vector<int>{1, 2, 3}};
+        s3[1]          = tuple{2, 0.2, std::vector<int>{4, 5, 6}};
+        s3[2]          = s3[1];
+        s3[3]          = std::move(s3[2]);
+        auto x         = struct_of_3(s3[3]);
+        auto y         = struct_of_3(std::move(s3[3]));
+        s3[4][2_ct][2] = 999;
+        std::swap(s3[4][2_ct], s3[5][2_ct]);
 
         assert(s3[0][0_ct] == 1 && s3[0][1_ct] == 0.0 && s3[0][2_ct][0] == 1);
         assert(s3[1][0_ct] == 2 && s3[1][1_ct] == 0.2 && s3[1][2_ct][0] == 4);
         assert(s3[2][0_ct] == 2 && s3[2][1_ct] == 0.2 && s3[2][2_ct].empty());  // moved
         assert(s3[3][0_ct] == 2 && s3[3][1_ct] == 0.2 && s3[3][2_ct].empty());  // moved
-        assert(s3[4][0_ct] == 4 && s3[4][1_ct] == 0.4 && s3[4][2_ct][2] == 6);
+        assert(s3[4][0_ct] == 4 && s3[4][1_ct] == 0.4 && s3[4][2_ct][2] == 7);
+        assert(s3[5][0_ct] == 5 && s3[5][1_ct] == 0.5 && s3[5][2_ct][2] == 999);  // swapped
         assert(x.x == 2 && x.y == 0.2 && x.z[0] == 4);
         assert(y.x == 2 && y.y == 0.2 && y.z[0] == 4);
+
+        auto a3 = aos3{s3.begin(), s3.end()};
+        assert(s3.size() == a3.size());
+        assert(s3[0][0_ct] == a3[0][0_ct]);
+        assert(s3[1][1_ct] == a3[1][1_ct]);
+        assert(s3[2][2_ct].size() == a3[2][2_ct].size());
+
+        auto      ptr3 = s3.data();
+        decl_auto ref3 = *ptr3;
+        assert(ref3[0_ct] == s3[0][0_ct]);
+        assert(ptr3 == &ref3);
+
+        decl_auto ref3_2 = s3[2];
+        auto      ptr3_2 = &ref3_2;
+        assert(ptr3_2 > ptr3);
     });
 }  // namespace
 #endif
 }  // namespace cav
 
-#endif /* CAV_INCLUDE_UTILS_SOASPAN_HPP */
+#endif /* CAV_INCLUDE_UTILS_SOAARRAY_HPP */

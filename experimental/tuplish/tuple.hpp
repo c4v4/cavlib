@@ -20,6 +20,7 @@
 
 #include <type_traits>
 
+#include "../../include/cav/comptime/call_utils.hpp"
 #include "../../include/cav/comptime/mp_base.hpp"
 #include "../../include/cav/comptime/syntactic_sugars.hpp"
 #include "../../include/cav/comptime/type_name.hpp"
@@ -69,6 +70,10 @@ template <typename... Ts>
 struct type_map : Ts... {
     using Ts::operator[]...;
 
+    [[nodiscard]] static constexpr size_t size() {
+        return sizeof...(Ts);
+    }
+
     [[nodiscard]] constexpr decl_auto reduce(auto&& fn) && {
         return FWD(fn)(std::move(Ts::value)...);
     }
@@ -81,44 +86,30 @@ struct type_map : Ts... {
         return FWD(fn)(Ts::value...);
     }
 
-    constexpr void for_each(auto&& fn) && {
-        (void)(FWD(fn)(std::move(Ts::value)), ...);
+    // return true if early exit happens, can work as "any"
+    constexpr bool for_each(auto&& fn) && {
+        return (ret_bool_or_false(FWD(fn), std::move(Ts::value)) || ...);
     }
 
-    constexpr void for_each(auto&& fn) const& {
-        (void)(FWD(fn)(Ts::value), ...);
+    constexpr bool for_each(auto&& fn) const& {
+        return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
     }
 
-    constexpr void for_each(auto&& fn) & {
-        (void)(FWD(fn)(Ts::value), ...);
+    constexpr bool for_each(auto&& fn) & {
+        return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
     }
 
-    constexpr void visit_idx(size_t idx, auto&& fn) && {
-        assert(idx < size());
-        reduce([&](auto&&... elems) {
-            size_t count = 0;
-            (void)((count++ == idx && (FWD(fn)(FWD(elems)), true)) || ...);
-        });
+    // return true if fn has been called (otherwise i was larger than size())
+    constexpr bool visit_idx(size_t i, auto&& fn) && {
+        return reduce([&](auto&&... x) { return ((i-- == 0 && (FWD(fn)(FWD(x)), true)) || ...); });
     }
 
-    constexpr void visit_idx(size_t idx, auto&& fn) const& {
-        assert(idx < size());
-        reduce([&](auto const&... elems) {
-            size_t count = 0;
-            (void)((count++ == idx && (FWD(fn)(FWD(elems)), true)) || ...);
-        });
+    constexpr bool visit_idx(size_t i, auto&& fn) const& {
+        return reduce([&](auto&... x) { return ((i-- == 0 && (FWD(fn)(x), true)) || ...); });
     }
 
-    constexpr void visit_idx(size_t idx, auto&& fn) & {
-        assert(idx < size());
-        reduce([&](auto&... elems) {
-            int count = 0;
-            ((count++ == idx && (FWD(fn)(FWD(elems)), true)) || ...);
-        });
-    }
-
-    [[nodiscard]] static constexpr size_t size() {
-        return sizeof...(Ts);
+    constexpr bool visit_idx(size_t i, auto&& fn) & {
+        return reduce([&](auto&... x) { return ((i-- == 0 && (FWD(fn)(x), true)) || ...); });
     }
 
     template <typename T>
@@ -148,9 +139,23 @@ namespace {
     CAV_PASS(tm2[tag<float>][9] == 0);
     CAV_PASS(tm3[tag<int>] == 4);
 
-    CAV_BLOCK_PASS(tm1.visit_idx(0, [](auto x) { assert(x == 1); }));
-    CAV_BLOCK_PASS(tm1.visit_idx(1, [](auto x) { assert(x == 2.0); }));
+    CAV_PASS(tm1.visit_idx(0, [](auto x) { assert(x == 1); }));
+    CAV_PASS(tm1.visit_idx(1, [](auto x) { assert(x == 2.0); }));
+    CAV_PASS(!tm1.visit_idx(2, [](auto x) { assert(x == 2.0); }));  // out of bounds
+    CAV_PASS(tm1.for_each([](auto x) { return x > 0; }));           // any > 0? true
+    CAV_PASS(!tm1.for_each([](auto x) { return x == 0; }));         // any == 0? false
+
     CAV_BLOCK_PASS(int x = static_cast<int>(tm3); assert(x == 4));
+    CAV_BLOCK_PASS({
+        int c = 0;
+        assert(tm2.for_each([&c](auto) { return ++c == 1; }));  // found at first
+        assert(c == 1);
+    });
+    CAV_BLOCK_PASS({
+        int c = 0;
+        assert(!tm2.for_each([&c](auto) { return ++c == 3; }));  // not found
+        assert(c == 2);
+    });
 }  // namespace
 #endif
 

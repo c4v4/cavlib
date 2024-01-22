@@ -42,8 +42,7 @@ using lambda_ret_t = typename lambda_ret<CallT, Args...>::ret_type;
 /// @brief Some lambdas return a boolean to notify a possible early exit criterium (from a loop).
 /// This wrapper eclose the needed checks always returning a boolean
 [[nodiscard]] constexpr bool ret_bool_or_false(auto&& lambda, auto&&... args) {
-    using lambda_res = std::invoke_result_t<TYPEOF(lambda), TYPEOF(args)...>;
-    if constexpr (std::same_as<lambda_res, bool>)
+    if constexpr (eq<bool, TYPEOF(FWD(lambda)(FWD(args)...))>)
         return FWD(lambda)(FWD(args)...);
     else
         FWD(lambda)(FWD(args)...);

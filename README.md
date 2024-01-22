@@ -38,6 +38,51 @@ Here's an unsorted list of principles I try to follow:
 
 - Library code: This repository should contain library code. Library code is free to do whatever hideous things are necessary to expose a useful, clean, and performant abstraction.
 
+## List of content:
+Only files and folder in `include/cav` are listed here, ignoring `experimental`.
+
+### `comptime`
+ - [`call_utils`](include/cav/comptime/call_utils.hpp): utilities for handling and manipulating function calls, lambda functions, and function pointers.
+ - [`enum_name`](include/cav/comptime/enum_name.hpp): utilities for mapping and retrieving names of enum values at compile-time.
+ - [`instance_of`](include/cav/comptime/instance_of.hpp): utilities for checking if a type is an instance of a specific template.
+ - [`macros`](include/cav/comptime/macros.hpp): preprocessor macros for debug logging, function inlining, function flattening, stringification, etc.
+ - [`mp_base`](include/cav/comptime/mp_base.hpp): basic building blocks for metaprogramming, including wrappers, pack, unique_wrap, value_wrap, and utilities for compile-time computations.
+ - [`mp_utils`](include/cav/comptime/mp_utils.hpp): utilities for manipulating and querying type properties, type traits, type lists operations, and compile-time checks.
+ - [`syntactic_sugars`](include/cav/comptime/syntactic_sugars.hpp): syntactic sugars for common C++ constructs, e.g., perfect forwarding, type manipulation, and conditional types, to reduce verbosity and boilerplate.
+ - [`test`](include/cav/comptime/test.hpp): utilities for constexpr testing, including expression failure checks and block execution tests.
+ - [`type_name`](include/cav/comptime/type_name.hpp): utilities for retrieving the name of a type at compile-time.
+
+### `datastruct`
+ - [`UnionFind`](include/cav/datastruct/UnionFind.hpp): data structure for disjoint-set operations.
+
+### `mish`
+ - [`Chrono`](include/cav/mish/Chrono.hpp): wrapper around C++ chrono library.
+ - [`errors`](include/cav/mish/errors.hpp): macros and functions for handling exceptions and errors, with support for both exception-enabled and exception-disabled environments.
+ - [`RaiiWrap`](include/cav/mish/RaiiWrap.hpp): RAII wrapper for managing resources, providing automatic cleanup when the wrapper goes out of scope.
+ - [`util_functions`](include/cav/mish/util_functions.hpp): utility functions simple enought to be deemed reusable in multiple projects.
+
+### `numeric`
+ - [`limits`](include/cav/numeric/limits.hpp): wrapper around std::numeric_limits
+ - [`random`](include/cav/numeric/random.hpp): random number generation utilities
+ - [`ScaledInt`](include/cav/numeric/ScaledInt.hpp): fixed-point arithmetic with customizable scaling, base, rounding, and underlying integral type
+ - [`sort`](include/cav/numeric/sort.hpp): hooks optimized for sorting short sequences.
+ - [`sorting_networks`](include/cav/numeric/sorting_networks.hpp): sorting networks for small-sized inputs up to size 32.
+ - [`TaggedScalar`](include/cav/numeric/TaggedScalar.hpp):  wraps a native arithmetic type, defining explicit conversions between different TaggedScalars and implicit conversions with native types
+ - [`TolFloat`](include/cav/numeric/TolFloat.hpp): floating point number wrapper, providing a tolerance for comparisons.
+ - [`XoshiroCpp`](include/cav/numeric/XoshiroCpp.hpp): [Ryo Suzuki XoshiroCpp](https://github.com/Reputeless/Xoshiro-cpp/blob/master) C++ porting of the Xoshiro pseudo-random number generator based on David Blackman and Sebastiano Vigna's [xoshiro generator](http://prng.di.unimi.it/).
+ - [`zero`](include/cav/numeric/zero.hpp): represents the zero value of any default-constructible.
+
+### `string`
+ - [`StaticStr`](include/cav/string/StaticStr.hpp): template for compile-time string manipulation and conversion.
+ - [`string_utils`](include/cav/string/string_utils.hpp): collection of string manipulation functions.
+
+### `vectors`
+ - [`GrowArray`](include/cav/vectors/GrowArray.hpp): std::array wrapper with std::vector-like operations for known max size but partial usage.
+ - [`MatrixKD`](include/cav/vectors/MatrixKD.hpp): multi-dimensional matrix class with dynamic dimensions and size.
+ - [`OffsetVec`](include/cav/vectors/OffsetVec.hpp): vector-like container with an offset, allowing for negative indexing and operations at both ends.
+ - [`OwnSpan`](include/cav/vectors/OwnSpan.hpp): span-like container that owns its data and deallocates it on destruction.
+
+
 ## Todos:
 - I need to start writing unit tests systematically. Currently, all the components have been used at a certain point in time in one or more projects, but this is far to consider them bug-free.
 - The documentation is pretty much non-existent. For many meta-functions or simple utilities it is not a problem (since they are small enough to be self-explanatory). For larger components I need to add, at the very least, a form of contract.

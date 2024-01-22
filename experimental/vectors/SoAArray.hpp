@@ -28,12 +28,25 @@ namespace cav {
 struct soa_tag;
 struct aos_tag;
 
+/// @brief SoAArray: abstraction that provides easy access to either Structure of Arrays (SoA) or
+/// Array of Structures (AoS) data types. The interface is designed to be as similar as possible
+/// between the two versions.
+///
+/// The SoAArray was initially designed to be a full std::vector-like container with support for
+/// custom allocators and resizing. However, these features have been removed for simplicity, as
+/// they are not frequently needed.
+///
+/// It also initially included a full abstraction for L/R value references and  pointers proxies
+/// (with operator& overloading), but this was removed due to the risk of producing surprising
+/// behavior in some corner cases.
+///
+/// In its current form, the SoAArray is a simpler data structure that focuses on providing easy
+/// SoA/AoS access pattern (and simplyfy the conversion between the two)
+///
+/// @tparam ...Ts
 template <typename, typename...>
 class SoAArray;
 
-/// @brief SoAArray specialization for Array of structures. This is the simple
-/// case, just inheriting from a OwnSpan of tuples.
-/// @tparam ...Ts
 template <typename... Ts>
 class SoAArray<aos_tag, Ts...> : public OwnSpan<tuple<Ts...>> {
 public:
@@ -45,17 +58,19 @@ public:
 
     constexpr SoAArray() = default;
 
-    template <std::input_iterator ItT>
-    constexpr SoAArray(ItT first, ItT last)
+    constexpr SoAArray(std::input_iterator auto first, std::input_iterator auto last)
         : base{std::distance(first, last), [&](auto& me) {
                    size_t i  = 0;
-                   ItT    it = first;
+                   auto   it = first;
                    while (it != last) {
                        std::construct_at(&me[i], *it);
                        ++it, ++i;
                    }
                }} {
     }
+
+    [[nodiscard]] constexpr value_type*       data()       = delete;  // pointers break SoA
+    [[nodiscard]] constexpr value_type const* data() const = delete;  // pointers break SoA
 };
 
 //////////
@@ -63,34 +78,33 @@ public:
 template <typename, typename>
 struct TupleProxyLRef;
 
-template <typename ST, std::size_t... Is>
-struct TupleProxyLRef<ST, std::index_sequence<Is...>> {
+template <typename SoaT, std::size_t... Is>
+struct TupleProxyLRef<SoaT, std::index_sequence<Is...>> {
 
-    using self        = TupleProxyLRef;
-    using soa_array_t = ST;
-    using tup_type    = typename soa_array_t::value_type;
+    using self           = TupleProxyLRef;
+    using soa_array_type = SoaT;
+    using tup_type       = typename soa_array_type::value_type;
 
-    size_t       idx;
-    soa_array_t* soa_array;
+    size_t          idx;
+    soa_array_type* soa_array;
 
     struct TupleProxyRRef : TupleProxyLRef {
+        using base = TupleProxyLRef;
 
         [[nodiscard]] constexpr decl_auto operator[](auto i) const {
-            return std::move(soa_array->base[i][idx]);
+            return std::move(soa_array->base.ptrs[i][idx]);
         }
 
         [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const {
-            return FWD(fn)(std::move((*this)[ct_v<Is>])...);
+            return base::reduce([&](auto&... x) { return FWD(fn)(std::move(x)...); });
         }
 
-        constexpr void for_each(auto&& fn) const {
-            (void)((FWD(fn)(std::move((*this)[ct_v<Is>])), ...));
+        constexpr bool for_each(auto&& fn) const {
+            return base::for_each([&](auto& x) { return FWD(fn)(std::move(x)); });
         }
 
-        constexpr void visit_idx(size_t idx, auto&& fn) const {
-            assert(idx < size());
-            size_t count = 0;
-            (void)((count++ == idx && (FWD(fn)(std::move((*this)[ct_v<Is>])), true)) || ...);
+        constexpr bool visit_idx(size_t i, auto&& fn) const {
+            return base::visit_idx(i, [&](auto& x) { return FWD(fn)(std::move(x)); });
         }
 
         template <typename T>
@@ -99,47 +113,18 @@ struct TupleProxyLRef<ST, std::index_sequence<Is...>> {
         }
     };
 
-    struct TupleProxyPtr {
-        TupleProxyLRef ref;
 
-        [[nodiscard]] constexpr TupleProxyLRef const& operator*() const {
-            return ref;
-        }
+private:
+    friend SoaT;
 
-        [[nodiscard]] constexpr TupleProxyLRef const* operator->() const {
-            return &ref;
-        }
-
-        [[nodiscard]] constexpr auto operator<=>(TupleProxyPtr const& other) const {
-            auto mid_res = ref.soa_array <=> other.ref.soa_array;
-            if (std::is_eq(mid_res))
-                return ref.idx <=> other.ref.idx;
-            return mid_res;
-        }
-
-        [[nodiscard]] constexpr bool operator==(TupleProxyPtr const& other) const {
-            return ref.soa_array == other.ref.soa_array && ref.idx == other.ref.idx;
-        }
-    };
-
-    using pointer          = TupleProxyPtr;
-    using const_pointer    = TupleProxyLRef<const ST, std::index_sequence<Is...>>::TupleProxyPtr;
-    using rvalue_reference = TupleProxyRRef;
-    using const_rvalue_reference = TupleProxyLRef<const ST,
-                                                  std::index_sequence<Is...>>::TupleProxyRRef;
-
-    constexpr TupleProxyLRef(size_t c_idx, ST* c_soa_array)
+    constexpr TupleProxyLRef(size_t c_idx, SoaT* c_soa_array)
         : idx(c_idx)
         , soa_array(c_soa_array) {
     }
 
     constexpr TupleProxyLRef(self const& other) = default;
 
-    constexpr TupleProxyLRef(TupleProxyRRef other)
-        : idx(other.idx)
-        , soa_array(other.soa_array) {
-    }
-
+public:
     constexpr self const& operator=(self other) const {
         (void)(((*this)[ct_v<Is>] = other[ct_v<Is>]), ...);
         return *this;
@@ -165,21 +150,19 @@ struct TupleProxyLRef<ST, std::index_sequence<Is...>> {
     }
 
     [[nodiscard]] constexpr decl_auto operator[](auto i) const {
-        return soa_array->base[i][idx];
+        return soa_array->base.ptrs[i][idx];
     }
 
     [[nodiscard]] constexpr decl_auto reduce(auto&& fn) const {
         return FWD(fn)((*this)[ct_v<Is>]...);
     }
 
-    constexpr void for_each(auto&& fn) const {
-        (void)((FWD(fn)((*this)[ct_v<Is>]), ...));
+    constexpr bool for_each(auto&& fn) const {
+        return ((FWD(fn)((*this)[ct_v<Is>]), ...));
     }
 
-    constexpr void visit_idx(size_t idx, auto&& fn) const {
-        assert(idx < size());
-        size_t count = 0;
-        (void)((count++ == idx && (FWD(fn)((*this)[ct_v<Is>]), true)) || ...);
+    constexpr bool visit_idx(size_t i, auto&& fn) const {
+        return reduce([&](auto&&... x) { return ((i-- == 0 && (FWD(fn)(FWD(x)), true)) || ...); });
     }
 
     [[nodiscard]] static constexpr size_t size() {
@@ -190,16 +173,12 @@ struct TupleProxyLRef<ST, std::index_sequence<Is...>> {
     [[nodiscard]] explicit constexpr operator T() const {
         return {(*this)[ct_v<Is>]...};
     }
-
-    [[nodiscard]] constexpr pointer operator&() const {
-        return pointer{*this};
-    }
 };
 }  // namespace cav
 
 namespace std {
-template <typename ST, typename ISeqT>
-[[nodiscard]] constexpr auto move(::cav::TupleProxyLRef<ST, ISeqT> ref)
+template <typename SoaT, typename ISeqT>
+[[nodiscard]] constexpr auto move(::cav::TupleProxyLRef<SoaT, ISeqT> ref)
     -> decltype(ref)::TupleProxyRRef {
     return ref;
 }
@@ -209,8 +188,10 @@ template <typename ST, typename ISeqT>
 namespace cav {
 
 /// @brief SoAArray specialization for Structure of arrays.
-///        TODO(cava): add support for resize (make it vector-like)
-///        TODO(cava): add support for custom allocators (will I ever use them tho?)
+/// Possible extensions:
+/// - support for resize (make it vector-like)
+/// - support for custom allocators (will I ever use them tho?)
+/// - full pointer-proxy abstaction (with operator& overloading)
 template <typename... Ts>
 class SoAArray<soa_tag, Ts...> {
 public:
@@ -218,8 +199,6 @@ public:
     using value_type             = tuple<Ts...>;
     using reference              = TupleProxyLRef<self, std::index_sequence_for<Ts...>>;
     using const_reference        = TupleProxyLRef<self const, std::index_sequence_for<Ts...>>;
-    using pointer                = reference::pointer;
-    using const_pointer          = reference::const_pointer;
     using iterator               = IndexProxyIter<self>;
     using const_iterator         = IndexProxyIter<self const>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -231,15 +210,15 @@ public:
     static constexpr size_t ntypes = sizeof...(Ts);
 
     struct soa_base {
+        using ptr_tuple_t             = tuple<Ts*...>;
+        static constexpr auto t_sizes = std::array<size_t, ntypes>{sizeof(Ts)...};
+        static constexpr auto t_align = std::array<size_t, ntypes>{alignof(Ts)...};
 
-        static constexpr auto t_sizes           = std::array<size_t, ntypes>{sizeof(Ts)...};
-        static constexpr auto t_align           = std::array<size_t, ntypes>{alignof(Ts)...};
-        using base_pointer                      = tuple<Ts*...>;
-        [[no_unique_address]] base_pointer ptrs = {};
-        size_t                             sz   = {};
+        [[no_unique_address]] ptr_tuple_t ptrs = {};
+        size_t                            sz   = {};
 
-        constexpr base_pointer allocate(size_t n) {
-            auto ptr = base_pointer{};
+        constexpr ptr_tuple_t allocate(size_t n) {
+            auto ptr = ptr_tuple_t{};
             ptr.for_each([n]<class T>(T*& ptr) { ptr = std::allocator<T>{}.allocate(n); });
             return ptr;
         }
@@ -259,17 +238,7 @@ public:
 
         constexpr soa_base() = default;
 
-        constexpr soa_base(size_t n)
-            : ptrs{allocate(n)}
-            , sz{n} {
-
-            for_each_idx<ntypes>([&](auto i) {
-                for (size_t j = 0; j < sz; ++j)
-                    std::construct_at(ptrs[i] + j);
-            });
-        }
-
-        constexpr soa_base(size_t n, value_type const& tup)
+        constexpr soa_base(size_t n, value_type const& tup = {})
             : ptrs{allocate(n)}
             , sz{n} {
 
@@ -277,18 +246,6 @@ public:
                 for (size_t j = 0; j < sz; ++j)
                     std::construct_at(ptrs[i] + j, tup[i]);
             });
-        }
-
-        constexpr soa_base(size_t n, auto const&... args)
-            : ptrs{allocate(n)}
-            , sz{n} {
-
-            for_each_elem(
-                [&](auto i, auto const& x) {
-                    for (size_t j = 0; j < sz; ++j)
-                        std::construct_at(ptrs[i] + j, x);
-                },
-                args...);
         }
 
         constexpr soa_base(soa_base const& other)
@@ -352,14 +309,6 @@ public:
             destroy();
             deallocate();
         }
-
-        [[nodiscard]] constexpr auto operator[](auto i) {
-            return std::span(ptrs[i], ptrs[i] + sz);
-        }
-
-        [[nodiscard]] constexpr auto operator[](auto i) const {
-            return std::span(ptrs[i], ptrs[i] + sz);
-        }
     };
 
     soa_base base = {};
@@ -373,14 +322,14 @@ public:
     }
 
     // Element access
-    [[nodiscard]] constexpr reference operator[](size_t idx) noexcept {
-        assert(idx < size());
-        return {idx, this};
+    [[nodiscard]] constexpr reference operator[](size_t i) noexcept {
+        assert(i < size());
+        return {i, this};
     }
 
-    [[nodiscard]] constexpr const_reference operator[](size_t idx) const noexcept {
-        assert(idx < size());
-        return {idx, this};
+    [[nodiscard]] constexpr const_reference operator[](size_t i) const noexcept {
+        assert(i < size());
+        return {i, this};
     }
 
     [[nodiscard]] constexpr reference front() {
@@ -397,14 +346,6 @@ public:
 
     [[nodiscard]] constexpr reference back() const {
         return (*this)[size() - 1];
-    }
-
-    [[nodiscard]] constexpr pointer data() {
-        return {reference{0, this}};
-    }
-
-    [[nodiscard]] constexpr const_pointer data() const {
-        return {const_reference{0, this}};
     }
 
     // Iterators
@@ -530,20 +471,14 @@ namespace {
         assert(x.x == 2 && x.y == 0.2 && x.z[0] == 4);
         assert(y.x == 2 && y.y == 0.2 && y.z[0] == 4);
 
+        auto vec = std::move(s3[5])[2_ct];
+        assert(vec[2] == 999 && s3[5][2_ct].empty());
+
         auto a3 = aos3{s3.begin(), s3.end()};
         assert(s3.size() == a3.size());
         assert(s3[0][0_ct] == a3[0][0_ct]);
         assert(s3[1][1_ct] == a3[1][1_ct]);
         assert(s3[2][2_ct].size() == a3[2][2_ct].size());
-
-        auto      ptr3 = s3.data();
-        decl_auto ref3 = *ptr3;
-        assert(ref3[0_ct] == s3[0][0_ct]);
-        assert(ptr3 == &ref3);
-
-        decl_auto ref3_2 = s3[2];
-        auto      ptr3_2 = &ref3_2;
-        assert(ptr3_2 > ptr3);
     });
 }  // namespace
 #endif

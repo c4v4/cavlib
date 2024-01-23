@@ -25,8 +25,8 @@ namespace cav {
 /// @brief TaggedScalar wrap a native arithmetic type and define the conversions between
 /// TaggedScalar as explicit. The conversion with native types are kept implicit for compatibility.
 ///
-/// Upon an arithmentic operation, the result is checkd to avoid overflow, infinite, Nan or any
-/// non-wanted edge case that is not relevant for the usage of this type.
+/// Upon an arithmentic operation, the result is checked to avoid overflow, infinite, Nan or any
+/// non-wanted edge case that is not relevant for my usage of this type.
 template <typename T, typename = UNIQUE_TYPE>
 struct TaggedScalar {
     using type = T;

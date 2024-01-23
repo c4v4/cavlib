@@ -121,6 +121,22 @@ struct type_map : Ts... {
     [[nodiscard]] explicit constexpr operator T() && {
         return {std::move(Ts::value)...};
     }
+
+    /// Here to take advantage of __type_pack_element when available
+    template <value_wrap I>
+    [[nodiscard]] constexpr decl_auto operator[](ct<I> /*k*/) && {
+        return std::move(nth_type_t<I, Ts...>::value);
+    }
+
+    template <value_wrap I>
+    [[nodiscard]] constexpr auto const& operator[](ct<I> /*k*/) const& {
+        return nth_type_t<I, Ts...>::value;
+    }
+
+    template <value_wrap I>
+    [[nodiscard]] constexpr auto& operator[](ct<I> /*k*/) & {
+        return nth_type_t<I, Ts...>::value;
+    }
 };
 
 #ifdef CAV_COMP_TESTS
@@ -166,6 +182,9 @@ namespace {
 template <typename... Ts>
 struct type_set : type_map<map_elem<Ts, Ts>...> {};
 
+template <typename... Ts>
+type_set(Ts...) -> type_set<Ts...>;
+
 #ifdef CAV_COMP_TESTS
 namespace {
     constexpr inline auto ts1 = type_set<int, float>{1, 2.0};
@@ -187,36 +206,14 @@ namespace {
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// TUPLE /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
-
-template <std::size_t I, typename V>
+template <typename V, typename Tag = UNIQUE_TYPE>
 struct tuple_elem {
     [[no_unique_address]] V value;
-
-    [[nodiscard]] constexpr V&& operator[](ct<I> /*k*/) && {
-        return std::move(value);
-    }
-
-    [[nodiscard]] constexpr V const& operator[](ct<I> /*k*/) const& {
-        return value;
-    }
-
-    [[nodiscard]] constexpr V& operator[](ct<I> /*k*/) & {
-        return value;
-    }
+    constexpr void operator[](Tag) = delete;
 };
 
-namespace detail {
-    template <typename... Ts>
-    struct make_tuple_map : make_tuple_map<std::index_sequence_for<Ts...>, Ts...> {};
-
-    template <std::size_t... Is, typename... Ts>
-    struct make_tuple_map<std::index_sequence<Is...>, Ts...> {
-        using type = type_map<tuple_elem<Is, Ts>...>;
-    };
-}  // namespace detail
-
 template <typename... Ts>
-struct tuple : detail::make_tuple_map<Ts...>::type {};
+struct tuple : type_map<tuple_elem<Ts>...> {};
 
 template <typename... Ts>
 tuple(Ts...) -> tuple<Ts...>;

@@ -469,42 +469,37 @@ namespace {
 }  // namespace
 #endif
 
+////// flat_pack_union //////
 namespace detail {
-    ////// conditional_wrap //////
-    template <typename T>
-    struct conditional_wrap {
-        using type = pack<T>;
-    };
 
     template <typename... Ts>
-    struct conditional_wrap<pack<Ts...>> {
-        using type = pack<Ts...>;
-    };
+    struct flat_pack_union_impl;
+
+    // todo(cava): test unrolling
+    template <typename... OkTs, typename T1, typename... Ts>
+    struct flat_pack_union_impl<pack<OkTs...>, T1, Ts...>
+        : flat_pack_union_impl<pack<OkTs..., T1>, Ts...> {};
+
+    template <typename... OkTs, typename... T1s, typename... Ts>
+    struct flat_pack_union_impl<pack<OkTs...>, pack<T1s...>, Ts...>
+        : flat_pack_union_impl<pack<OkTs...>, T1s..., Ts...> {};
+
+    template <typename... OkTs>
+    struct flat_pack_union_impl<pack<OkTs...>> : unique<OkTs...> {};
+
 }  // namespace detail
 
-////// flat_pack_union //////
+template <typename... Ts>
+struct flat_pack_union : detail::flat_pack_union_impl<pack<>, Ts...> {};
 
 template <typename... Ts>
-struct flat_pack_union : flat_pack_union<typename detail::conditional_wrap<Ts>::type...> {};
-
-template <typename... T1s>
-struct flat_pack_union<pack<T1s...>> : unique<T1s...> {};
-
-template <typename... T1s, typename... T2s, typename... Ts>
-struct flat_pack_union<pack<T1s...>, pack<T2s...>, Ts...>
-    : flat_pack_union<pack<T1s..., T2s...>, Ts...> {};
-
-template <>
-struct flat_pack_union<> {
-    using type = pack<>;
-};
-
-template <typename... Ts>
-using flat_pack_union_t = typename flat_pack_union<Ts...>::type;
+using flat_pack_union_t = typename detail::flat_pack_union_impl<pack<>, Ts...>::type;
 
 #ifdef CAV_COMP_TESTS
 namespace {
     CAV_PASS(eq<pack<t1>, flat_pack_union_t<t1>>);
+    CAV_PASS(eq<pack<t1>, flat_pack_union_t<t1, t1>>);
+    CAV_PASS(eq<pack<t1>, flat_pack_union_t<pack<t1, pack<>>>>);
     CAV_PASS(eq<pack<t1>, flat_pack_union_t<t1, t1>>);
     CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<t5, t1, t1, t5>>);
     CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<pack<t5, t1>, t1, t5>>);
@@ -512,6 +507,7 @@ namespace {
     CAV_PASS(eq<pack<t1, t5>, flat_pack_union_t<pack<t1, t1>, pack<t5>>>);
     CAV_PASS(eq<pack<t5, t1>, flat_pack_union_t<pack<t5, t1>, pack<t1>>>);
     CAV_PASS(eq<pack<t1, t5>, flat_pack_union_t<pack<>, pack<t1, t1>, t5>>);
+    CAV_PASS(eq<pack<t1, t5>, flat_pack_union_t<pack<>, pack<pack<t1, pack<>>, t1>, t5>>);
 }  // namespace
 #endif
 

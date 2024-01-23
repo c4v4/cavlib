@@ -1,6 +1,6 @@
 
 CompileFlags:  
-  Add: ["-std=c++20", "-DCOMP_TESTS"]
+  Add: ["-std=c++20", "-DCAV_COMP_TESTS"]
 Diagnostics:
     UnusedIncludes: Strict
     ClangTidy: 

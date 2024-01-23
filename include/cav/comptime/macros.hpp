@@ -63,4 +63,35 @@
 #define CAV_STR(s)  CAV__STR(s)
 #define CAV__STR(s) #s
 
+/// @brief Often one would like to use a type only if it is defined. However, std::conditional_t
+/// instantiates both branches so one cannot insert non-existing types to check if they exist
+/// with a require expression, and then use them safely.
+/// On the other hand, "if constexpr" have exactly the desired behaviour (it does not instantiate
+/// the non-used branch). So using a lambda that wraps the if constexpr we can get the check that we
+/// want.
+/// Void is returned if the request type does not exist.
+#define CAV_VOID_IF_ILLEGAL(TYPE...)            \
+    typename std::invoke_result_t<decltype([] { \
+        if constexpr (requires { TYPE; })       \
+            return wrap<TYPE>{};                \
+        else                                    \
+            return wrap<void>{};                \
+    })>::type
+
+#define CAV_FALLBK_TYPE(FALLBACK, TYPE...)         \
+    typename std::invoke_result_t<decltype([] {    \
+        if constexpr (requires { typename TYPE; }) \
+            return wrap<typename TYPE>{};          \
+        else                                       \
+            return wrap<FALLBACK>{};               \
+    })>::type
+
+#define CAV_FALLBK_VALUE(FALLBACK, VALUE...) \
+    [] {                                     \
+        if constexpr (requires { VALUE; })   \
+            return VALUE;                    \
+        else                                 \
+            return FALLBACK;                 \
+    }()
+
 #endif /* CAV_INCLUDE_MACROS_HPP */

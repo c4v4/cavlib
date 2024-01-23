@@ -382,8 +382,11 @@ public:
         });
     }
 };
+}  // namespace cav
 
 #ifdef CAV_COMP_TESTS
+#include <vector>
+namespace cav {
 namespace {
 
     using aos0 = SoAArray<aos_tag>;

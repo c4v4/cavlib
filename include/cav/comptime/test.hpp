@@ -20,11 +20,11 @@
 /// costant expression. Adapted from https://stackoverflow.com/a/55290363
 namespace cav::test_detail {
 template <typename E, bool R = E{}()>
-constexpr bool expr_fails(E) {
+static constexpr bool expr_fails(E /*e*/) {
     return !R;
 }
 
-constexpr bool expr_fails(...) {
+static constexpr bool expr_fails(...) {
     return true;
 }
 }  // namespace cav::test_detail

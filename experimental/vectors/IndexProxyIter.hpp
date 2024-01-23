@@ -16,6 +16,7 @@
 #ifndef CAV_CAVLIB_EXPERIMENTAL_VECTORS_INDEXPROXYITER_HPP
 #define CAV_CAVLIB_EXPERIMENTAL_VECTORS_INDEXPROXYITER_HPP
 
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <iterator>
@@ -126,7 +127,6 @@ constexpr IndexProxyIter<ContT> operator-(ptrdiff_t n, IndexProxyIter<ContT> ite
 }  // namespace cav
 
 #ifdef CAV_COMP_TESTS
-#include <span>
 #include <vector>
 
 namespace cav { namespace {
@@ -134,7 +134,8 @@ namespace cav { namespace {
 
     CAV_BLOCK_PASS({
         auto vec = std::vector<int>{0, 1, 2, 3, 4};
-        auto beg = IndexProxyIter(0, &vec), end = IndexProxyIter(5, &vec);
+        auto beg = IndexProxyIter(0, &vec);
+        auto end = IndexProxyIter(5, &vec);
         for (auto it = beg; int n : vec) {
             assert(*it == n);
             assert(it < end);

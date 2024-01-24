@@ -530,6 +530,16 @@ constexpr void for_each_elem(auto&& fn, auto&&... elems) {
     }(std::make_index_sequence<sizeof...(elems)>{});
 }
 
+constexpr size_t idx_of_true(auto... args) {
+    size_t idx = 0;
+    (void)((++idx, args) || ...);
+    return idx - 1;
+}
+
+constexpr size_t count_trues(auto... args) {
+    return (static_cast<size_t>(args) + ...);
+}
+
 }  // namespace cav
 
 #endif /* CAV_INCLUDE_UTIL_FUNCTIONS_HPP */

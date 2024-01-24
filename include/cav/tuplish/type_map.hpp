@@ -13,17 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_EXPERIMENTAL_TUPLISH_TUPLE_HPP
-#define CAV_EXPERIMENTAL_TUPLISH_TUPLE_HPP
+#ifndef CAV_TUPLISH_TYPE_MAP_HPP
+#define CAV_TUPLISH_TYPE_MAP_HPP
 
-#include <bits/utility.h>
-
-#include <type_traits>
-
-#include "../../include/cav/comptime/call_utils.hpp"
-#include "../../include/cav/comptime/mp_base.hpp"
-#include "../../include/cav/comptime/syntactic_sugars.hpp"
-#include "../../include/cav/comptime/type_name.hpp"
+#include "../comptime/call_utils.hpp"
+#include "../comptime/mp_base.hpp"
+#include "../comptime/syntactic_sugars.hpp"
+#include "../comptime/type_name.hpp"
 
 namespace cav {
 
@@ -39,6 +35,9 @@ constexpr auto tag = tag_type<T>{};
 
 template <typename K, typename V>
 struct map_elem {
+    using key_t   = K;
+    using value_t = V;
+
     [[no_unique_address]] V value;
 
     [[nodiscard]] constexpr V&& operator[](tag_type<K> /*k*/) && {
@@ -52,22 +51,15 @@ struct map_elem {
     [[nodiscard]] constexpr V& operator[](tag_type<K> /*k*/) & {
         return value;
     }
-
-    [[nodiscard]] constexpr V&& operator[](ct<type_name<K>::name> /*k*/) && {
-        return std::move(value);
-    }
-
-    [[nodiscard]] constexpr V const& operator[](ct<type_name<K>::name> /*k*/) const& {
-        return value;
-    }
-
-    [[nodiscard]] constexpr V& operator[](ct<type_name<K>::name> /*k*/) & {
-        return value;
-    }
 };
 
 template <typename... Ts>
 struct type_map : Ts... {
+    static_assert(!(eq<typename Ts::value_t, void> || ...));
+
+    template <typename T>
+    static constexpr auto ts_name = type_name<typename T::key_t>::name;
+
     using Ts::operator[]...;
 
     [[nodiscard]] static constexpr size_t size() {
@@ -122,22 +114,71 @@ struct type_map : Ts... {
         return {std::move(Ts::value)...};
     }
 
-    /// Here to take advantage of __type_pack_element when available
-    template <value_wrap I>
-    [[nodiscard]] constexpr decl_auto operator[](ct<I> /*k*/) && {
-        return std::move(nth_type_t<I, Ts...>::value);
+    template <typename T>
+    [[nodiscard]] static constexpr bool has(tag_type<T> /*k*/) {
+        return has_type_v<T, Ts...>;
     }
 
-    template <value_wrap I>
-    [[nodiscard]] constexpr auto const& operator[](ct<I> /*k*/) const& {
-        return nth_type_t<I, Ts...>::value;
+    template <value_wrap<std::size_t> K>
+    [[nodiscard]] static constexpr bool has(ct<K> /*k*/) {
+        return K.value < size();
     }
 
-    template <value_wrap I>
-    [[nodiscard]] constexpr auto& operator[](ct<I> /*k*/) & {
-        return nth_type_t<I, Ts...>::value;
+    template <std::size_t N, value_wrap<StaticStr<N>> K>
+    [[nodiscard]] static consteval bool has(ct<K> /*k*/) {
+        constexpr auto   tname        = static_cast<StaticStr<N>>(K);
+        constexpr size_t nexact_match = count_trues(tname == ts_name<Ts>...);
+        return nexact_match == 1 ||
+               (nexact_match < 1 && count_trues(ts_name<Ts>.starts_with(tname)...) == 1);
+    }
+
+    template <value_wrap<std::size_t> K>
+    [[nodiscard]] static constexpr size_t get_idx(ct<K> /*k*/) {
+        static_assert(size() > 0, "Requesting element of empty type_map");
+        static_assert(K < size(), "Index out of bounds");
+        return K.value;
+    }
+
+    template <std::size_t N, value_wrap<StaticStr<N>> K>
+    [[nodiscard]] static consteval size_t get_idx(ct<K> /*k*/) {
+        constexpr auto tname = static_cast<StaticStr<N>>(K);
+        if constexpr (count_trues(tname == ts_name<Ts>...) == 1)
+            return idx_of_true(tname == ts_name<Ts>...);
+        else
+            return idx_of_true(ts_name<Ts>.starts_with(tname)...);
+    }
+
+    template <auto K>
+    requires(has(ct_v<K>))
+    [[nodiscard]] constexpr decl_auto operator[](ct<K> k) && {
+        return std::move(nth_type_t<get_idx(k), Ts...>::value);
+    }
+
+    template <auto K>
+    requires(has(ct_v<K>))
+    [[nodiscard]] constexpr auto const& operator[](ct<K> k) const& {
+        return nth_type_t<get_idx(k), Ts...>::value;
+    }
+
+    template <auto K>
+    requires(has(ct_v<K>))
+    [[nodiscard]] constexpr auto& operator[](ct<K> k) & {
+        return nth_type_t<get_idx(k), Ts...>::value;
     }
 };
+
+template <typename, typename>
+struct make_tmap_from_lists;
+
+template <typename... Ks, typename... Vs>
+struct make_tmap_from_lists<pack<Ks...>, pack<Vs...>> {
+    static_assert(sizeof...(Ks) == sizeof...(Vs), "Number of keys and values must be the same");
+    using type = type_map<map_elem<Ks, Vs>...>;
+};
+
+template <typename Ks, typename Vs>
+using make_tmap_from_lists_t = typename make_tmap_from_lists<Ks, Vs>::type;
+
 
 #ifdef CAV_COMP_TESTS
 namespace {
@@ -145,6 +186,8 @@ namespace {
     constexpr inline auto tm2 = type_map<map_elem<ct<5>, int>, map_elem<float, float[10]>>{3, {}};
     constexpr inline auto tm3 = type_map<map_elem<int, int>>{4};
     constexpr inline auto tm4 = type_map<>{};
+    constexpr inline auto tm5 = make_tmap_from_lists_t<pack<pack<int>, pack<>, pack<float>>,
+                                                       pack<int, int16_t, float>>{1, {}, 2.0};
 
     CAV_PASS(sizeof(tm1) == 8);
     CAV_PASS(sizeof(tm2) == 44);
@@ -161,6 +204,13 @@ namespace {
     CAV_PASS(tm1.for_each([](auto x) { return x > 0; }));           // any > 0? true
     CAV_PASS(!tm1.for_each([](auto x) { return x == 0; }));         // any == 0? false
 
+    CAV_PASS(tm5["cav::pack<i"_cs] == 1);
+    CAV_PASS(tm5["cav::pack<in"_cs] == 1);
+    CAV_PASS(tm5["cav::pack<int"_cs] == 1);
+    CAV_PASS(tm5["cav::pack<int>"_cs] == 1);
+
+    CAV_FAIL(eq<decltype(tm5["cav::pack<>"_cs]), void>);
+
     CAV_BLOCK_PASS(int x = static_cast<int>(tm3); assert(x == 4));
     CAV_BLOCK_PASS({
         int c = 0;
@@ -174,73 +224,6 @@ namespace {
     });
 }  // namespace
 #endif
-
-////////////////////////////////////////////////////////////////////////
-/////////////////////////////// TYPE SET ///////////////////////////////
-////////////////////////////////////////////////////////////////////////
-
-template <typename... Ts>
-struct type_set : type_map<map_elem<Ts, Ts>...> {};
-
-template <typename... Ts>
-type_set(Ts...) -> type_set<Ts...>;
-
-#ifdef CAV_COMP_TESTS
-namespace {
-    constexpr inline auto ts1 = type_set<int, float>{1, 2.0};
-    constexpr inline auto ts2 = type_set<int, float[10]>{3, {}};
-    constexpr inline auto ts3 = type_set<int>{4};
-    constexpr inline auto ts4 = type_set<>{};
-
-    CAV_PASS(sizeof(ts1) == 8);
-    CAV_PASS(sizeof(ts2) == 44);
-    CAV_PASS(sizeof(ts3) == 4);
-    CAV_PASS(sizeof(ts4) == 1);
-    CAV_PASS(ts1["int"_cs] == 1);
-    CAV_PASS(ts1[tag<float>] == 2.0);
-    CAV_PASS(ts2[tag<float[10]>][9] == 0);
-    CAV_PASS(ts3[tag<int>] == 4);
-}  // namespace
-#endif
-
-/////////////////////////////////////////////////////////////////////////
-///////////////////////////////// TUPLE /////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-template <typename V, typename Tag = UNIQUE_TYPE>
-struct tuple_elem {
-    [[no_unique_address]] V value;
-    constexpr void operator[](Tag) = delete;
-};
-
-template <typename... Ts>
-struct tuple : type_map<tuple_elem<Ts>...> {};
-
-template <typename... Ts>
-tuple(Ts...) -> tuple<Ts...>;
-
-#ifdef CAV_COMP_TESTS
-namespace {
-    constexpr inline auto tp0 = tuple<>{};
-    constexpr inline auto tp1 = tuple<int, float>{1, 2.0};
-    constexpr inline auto tp2 = tuple<int, float[10]>{3, {}};
-    constexpr inline auto tp3 = tuple<int>{4};
-    constexpr inline auto tp4 = tuple<>{};
-    constexpr inline auto tp5 = tuple<int, int, int, int, int>{1, 2, 3, 4, 5};
-
-    CAV_PASS(sizeof(tp0) == 1);
-    CAV_PASS(sizeof(tp1) == 8);
-    CAV_PASS(sizeof(tp2) == 44);
-    CAV_PASS(sizeof(tp3) == 4);
-    CAV_PASS(sizeof(tp4) == 1);
-    CAV_PASS(tp1[0_ct] == 1);
-    CAV_PASS(tp1[ct_v<1_uz>] == 2.0);
-    CAV_PASS(tp2[1_ct][9] == 0);
-    CAV_PASS(tp3[ct_v<std::size_t{}>] == 4);
-
-    CAV_BLOCK_PASS(auto x = std::array<int, 5>(tp5); assert(x[1] == 2););
-}  // namespace
-#endif
-
 }  // namespace cav
 
-#endif /* CAV_EXPERIMENTAL_TUPLISH_TUPLE_HPP */
+#endif /* CAV_TUPLISH_TYPE_MAP_HPP */

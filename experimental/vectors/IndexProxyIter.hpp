@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_CAVLIB_EXPERIMENTAL_VECTORS_INDEXPROXYITER_HPP
-#define CAV_CAVLIB_EXPERIMENTAL_VECTORS_INDEXPROXYITER_HPP
+#ifndef CAV_VECTORS_INDEXPROXYITER_HPP
+#define CAV_VECTORS_INDEXPROXYITER_HPP
 
 #include <cassert>
 #include <concepts>
@@ -148,4 +148,4 @@ namespace cav { namespace {
 }  // namespace cav
 #endif
 
-#endif /* CAV_CAVLIB_EXPERIMENTAL_VECTORS_INDEXPROXYITER_HPP */
+#endif /* CAV_VECTORS_INDEXPROXYITER_HPP */

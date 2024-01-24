@@ -13,13 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CAV_CAVLIB_EXPERIMENTAL_TUPLISH_DEPENDENCIES_HPP
-#define CAV_CAVLIB_EXPERIMENTAL_TUPLISH_DEPENDENCIES_HPP
+#ifndef CAV_TUPLISH_DEPENDENCIES_HPP
+#define CAV_TUPLISH_DEPENDENCIES_HPP
 
-#include "cav/comptime/macros.hpp"
-#include "cav/comptime/mp_base.hpp"
-#include "cav/comptime/mp_utils.hpp"
-#include "tuple.hpp"
+#include "../tuplish/type_set.hpp"
 
 namespace cav {
 
@@ -121,4 +118,4 @@ namespace {
 #endif
 }  // namespace cav
 
-#endif /* CAV_CAVLIB_EXPERIMENTAL_TUPLISH_DEPENDENCIES_HPP */
+#endif /* CAV_TUPLISH_DEPENDENCIES_HPP */

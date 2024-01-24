@@ -49,9 +49,11 @@ Only files and folder in `include/cav` are listed here, ignoring `experimental`.
 
 ### `vectors`
  - [`GrowArray`](include/cav/vectors/GrowArray.hpp): std::array wrapper with std::vector-like operations for known max size but partial usage.
+ - [`IndexProxyIter`](include/cav/vectors/IndexProxyIter.hpp): custom iterator for indexable containers, supporting random access and arithmetic operations.
  - [`MatrixKD`](include/cav/vectors/MatrixKD.hpp): multi-dimensional matrix class with dynamic dimensions and size.
  - [`OffsetVec`](include/cav/vectors/OffsetVec.hpp): vector-like container with an offset, allowing for negative indexing and operations at both ends.
  - [`OwnSpan`](include/cav/vectors/OwnSpan.hpp): span-like container that owns its data and deallocates it on destruction.
+ - [`SoAArray`](include/cav/vectors/SoAArray.hpp): simplified data structure providing easy access to either Structure of Arrays (SoA) or Array of Structures (AoS) data types, focusing on easy SoA/AoS access pattern and conversion.
 
 
 ## Why make it public?

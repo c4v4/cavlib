@@ -38,32 +38,32 @@ struct StaticStr : std::array<char, N> {
     using self = StaticStr;
 
 private:
-    static constexpr void _copy_init(auto& src, auto& dest) noexcept {
+    static consteval void _copy_init(auto& src, auto& dest) noexcept {
         // assert(src[N - 1] == '\0');
         for (std::size_t i = 0; i < N; ++i)
             dest[i] = src[i];
     }
 
 public:
-    constexpr StaticStr() = default;
+    consteval StaticStr() = default;
 
-    constexpr StaticStr(base const& str)
+    consteval StaticStr(base const& str)
         : base{str} {
     }
 
-    constexpr StaticStr(std::array<char const, N> const& str) {
+    consteval StaticStr(std::array<char const, N> const& str) {
         _copy_init(str, *this);
     }
 
-    constexpr StaticStr(char const (&str)[N]) {
+    consteval StaticStr(char const (&str)[N]) {
         _copy_init(str, *this);
     }
 
-    constexpr StaticStr(char (&str)[N]) {
+    consteval StaticStr(char (&str)[N]) {
         _copy_init(str, *this);
     }
 
-    constexpr StaticStr(std::string_view str) {
+    consteval StaticStr(std::string_view str) {
         size_t str_size = std::size(str);
         size_t sz       = str_size < N ? str_size : N - 1;
 
@@ -73,51 +73,51 @@ public:
             (*this)[i] = '\0';
     }
 
-    constexpr operator std::array<char const, N>() const {
+    consteval operator std::array<char const, N>() const {
         std::array<char const, N> result{};
         _copy_init(*this, result);
         return result;
     }
 
-    constexpr operator base const&() const {
+    consteval operator base const&() const {
         return *this;
     }
 
-    constexpr operator base&() {
+    consteval operator base&() {
         return *this;
     }
 
-    constexpr operator auto *() const {
+    consteval operator auto *() const {
         return base::data();
     }
 
-    constexpr operator std::string_view() const {
+    consteval operator std::string_view() const {
         return {base::begin(), base::end() - 1};  // remove \0
     }
 
 #ifdef CAV_FOUND_FMT
-    constexpr operator fmt::string_view() const {
+    consteval operator fmt::string_view() const {
         return {base::data(), base::size() - 1};  // remove \0
     }                                             // namespace
 #endif
 
-    [[nodiscard]] static constexpr std::size_t size() {
+    [[nodiscard]] static consteval std::size_t size() {
         return N;
     }
 
-    [[nodiscard]] constexpr bool starts_with(auto const& prefix) const {
+    [[nodiscard]] consteval bool starts_with(auto const& prefix) const {
         return static_cast<std::string_view>(*this).starts_with(
             static_cast<std::string_view>(prefix));
     }
 };
 
 template <size_t M, size_t N>
-constexpr auto operator<=>(StaticStr<M> const& s1, StaticStr<N> const& s2) noexcept {
+consteval auto operator<=>(StaticStr<M> const& s1, StaticStr<N> const& s2) noexcept {
     return std::string_view{s1} <=> std::string_view{s2};
 }
 
 template <size_t M, size_t N>
-constexpr bool operator==(StaticStr<M> const& s1, StaticStr<N> const& s2) noexcept {
+consteval bool operator==(StaticStr<M> const& s1, StaticStr<N> const& s2) noexcept {
     return std::string_view{s1} == std::string_view{s2};
 }
 
@@ -147,7 +147,7 @@ struct size_of<T[N]> {
 /// @brief Concatenate strings at compile time. Only c-array, std::array, and StaticStr can be
 /// used (since the size must be known at compile time).
 template <typename... Ts>
-[[nodiscard]] constexpr auto str_concat(Ts&&... args) {
+[[nodiscard]] consteval auto str_concat(Ts&&... args) {
     // Compute new size removing zero-terminations
     constexpr size_t res_size = (size_of<no_cvr<Ts>>::value + ...) - sizeof...(Ts) + 1;
 
@@ -172,7 +172,7 @@ requires requires(ST1 s1, ST2 s2) {
     { StaticStr(s1) };
     { StaticStr(s2) };
 }
-[[nodiscard]] constexpr decl_auto operator+(ST1&& s1, ST2&& s2) {
+[[nodiscard]] consteval decl_auto operator+(ST1&& s1, ST2&& s2) {
     return str_concat(StaticStr(FWD(s1)), StaticStr(FWD(s2)));
 }
 

@@ -32,7 +32,7 @@ namespace detail {
     struct enum_name_impl {
     private:
         template <auto Y>
-        static constexpr std::string_view _wrapped_enum_name() {
+        static consteval std::string_view _wrapped_enum_name() {
             return std::source_location::current().function_name();
         }
 
@@ -86,7 +86,7 @@ namespace detail {
     }  // namespace
 #endif
 
-    constexpr bool ends_with(std::string_view str, std::string_view suffix) {
+    consteval bool ends_with(std::string_view str, std::string_view suffix) {
         return str.size() >= suffix.size() &&
                0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
     }
@@ -105,7 +105,7 @@ namespace detail {
 
 /// @brief Create a map from enum values to their names
 template <typename ET>
-constexpr auto make_enum_name_map() {
+consteval auto make_enum_name_map() {
     constexpr size_t e_size = detail::get_enum_size<ET, 0>::value;
     auto             res    = std::array<char const*, e_size>{};
     for_each_idx<e_size>(
@@ -114,7 +114,7 @@ constexpr auto make_enum_name_map() {
 }
 
 template <auto X>
-[[nodiscard]] constexpr auto enum_name() {
+[[nodiscard]] consteval auto enum_name() {
     return detail::enum_name_impl<decltype(X), X>::name;
 }
 

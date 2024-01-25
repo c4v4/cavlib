@@ -62,7 +62,7 @@ struct type_map : Ts... {
 
     using Ts::operator[]...;
 
-    [[nodiscard]] static constexpr size_t size() {
+    [[nodiscard]] static consteval size_t size() {
         return sizeof...(Ts);
     }
 
@@ -115,12 +115,12 @@ struct type_map : Ts... {
     }
 
     template <typename T>
-    [[nodiscard]] static constexpr bool has(tag_type<T> /*k*/) {
+    [[nodiscard]] static consteval bool has(tag_type<T> /*k*/) {
         return has_type_v<T, Ts...>;
     }
 
     template <value_wrap<std::size_t> K>
-    [[nodiscard]] static constexpr bool has(ct<K> /*k*/) {
+    [[nodiscard]] static consteval bool has(ct<K> /*k*/) {
         return K.value < size();
     }
 
@@ -133,7 +133,7 @@ struct type_map : Ts... {
     }
 
     template <value_wrap<std::size_t> K>
-    [[nodiscard]] static constexpr size_t get_idx(ct<K> /*k*/) {
+    [[nodiscard]] static consteval size_t get_idx(ct<K> /*k*/) {
         static_assert(size() > 0, "Requesting element of empty type_map");
         static_assert(K < size(), "Index out of bounds");
         return K.value;

@@ -16,6 +16,8 @@
 #ifndef CAV_INCLUDE_RAII_ADAPTER_HPP
 #define CAV_INCLUDE_RAII_ADAPTER_HPP
 
+#include <cassert>
+
 #include "../comptime/syntactic_sugars.hpp"
 #include "../comptime/test.hpp"
 
@@ -55,24 +57,24 @@ namespace {
     });
 
     CAV_BLOCK_PASS({
-        auto ptr = RaiiWrap{new int{42}, [](auto p) {}};  // useless but ok
+        auto ptr = RaiiWrap{new int{42}, [](auto /*p*/) {}};  // useless but ok
         assert(*ptr == 42);
         delete ptr.val;
     });
 
 
     CAV_BLOCK_FAIL({
-        auto ptr = RaiiWrap{new int{42}, [](auto p) {}};  // No delete -> UB
+        auto ptr = RaiiWrap{new int{42}, [](auto /*p*/) {}};  // No delete -> UB
         assert(*ptr == 42);
     });
 
     CAV_BLOCK_FAIL({
-        auto ptr = RaiiWrap{new int{42}, [](auto p) { delete p; }};
+        auto ptr = RaiiWrap{new int{42}, [](auto /*p*/) { delete p; }};
         delete ptr.val;  // double free -> UB
     });
 
     CAV_BLOCK_FAIL({
-        auto ptr = RaiiWrap{new int{42}, [](auto p) {}};
+        auto ptr = RaiiWrap{new int{42}, [](auto /*p*/) {}};
         delete ptr.val;
         assert(*ptr == 42);  // use after free -> UB
     });

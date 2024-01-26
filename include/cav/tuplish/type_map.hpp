@@ -116,7 +116,7 @@ struct type_map : Ts... {
 
     template <typename T>
     [[nodiscard]] static consteval bool has(tag_type<T> /*k*/) {
-        return has_type_v<T, Ts...>;
+        return has_type_v<T, typename Ts::key_t...>;
     }
 
     template <value_wrap<std::size_t> K>

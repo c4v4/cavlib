@@ -17,6 +17,7 @@
 #define CAV_TUPLISH_DEPENDENCIES_HPP
 
 #include "../tuplish/type_set.hpp"
+#include "../comptime/mp_utils.hpp"
 
 namespace cav {
 
@@ -75,6 +76,8 @@ using deps_t = typename resolve_deps<Ts...>::type;
 template <typename... Ts>
 using make_dependency_set_t = tmpl_cast_t<type_set, typename resolve_deps<Ts...>::type>;
 
+template <typename T, typename U>
+constexpr bool is_dep_v = has_type_unwrap_v<T, typename U::deps>;
 
 #ifdef CAV_COMP_TESTS
 namespace {

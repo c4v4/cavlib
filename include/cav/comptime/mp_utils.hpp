@@ -581,35 +581,35 @@ namespace {
 ////// pack difference //////
 namespace detail {
     template <typename AccT, typename T1, typename>
-    struct pack_difference_impl {
-        static_assert(eq<T1, pack<>>, "'pack_difference assumes' that it is working with 'pack'");
+    struct pack_diff_impl {
+        static_assert(eq<T1, pack<>>, "'pack_diff assumes' that it is working with 'pack'");
         using type = AccT;
     };
 
     template <typename... AccTs, typename T, typename... T1s, typename PackT2>
-    struct pack_difference_impl<pack<AccTs...>, pack<T, T1s...>, PackT2>
-        : pack_difference_impl<pack<AccTs..., T>, pack<T1s...>, PackT2> {};
+    struct pack_diff_impl<pack<AccTs...>, pack<T, T1s...>, PackT2>
+        : pack_diff_impl<pack<AccTs..., T>, pack<T1s...>, PackT2> {};
 
     template <typename... AccTs, typename T, typename... T1s, typename PackT2>
     requires(has_type_unwrap_v<T, PackT2>)
-    struct pack_difference_impl<pack<AccTs...>, pack<T, T1s...>, PackT2>
-        : pack_difference_impl<pack<AccTs...>, pack<T1s...>, PackT2> {};
+    struct pack_diff_impl<pack<AccTs...>, pack<T, T1s...>, PackT2>
+        : pack_diff_impl<pack<AccTs...>, pack<T1s...>, PackT2> {};
 
 }  // namespace detail
 
 template <typename PackT1, typename PackT2>
-struct pack_difference : detail::pack_difference_impl<pack<>, PackT1, PackT2> {};
+struct pack_diff : detail::pack_diff_impl<pack<>, PackT1, PackT2> {};
 
 template <typename PackT1, typename PackT2>
-using pack_difference_t = typename detail::pack_difference_impl<pack<>, PackT1, PackT2>::type;
+using pack_diff_t = typename detail::pack_diff_impl<pack<>, PackT1, PackT2>::type;
 
 
 #ifdef CAV_COMP_TESTS
 namespace {
-    CAV_PASS(eq<pack_difference_t<pack<t1, t2, t3, t4>, pack<t1, t4>>, pack<t2, t3>>);
-    CAV_PASS(eq<pack_difference_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);
-    CAV_PASS(eq<pack_difference_t<pack<t1, t2>, pack<t3, t4>>, pack<t1, t2>>);
-    CAV_PASS(eq<pack_difference_t<pack<>, pack<t3, t4>>, pack<>>);
+    CAV_PASS(eq<pack_diff_t<pack<t1, t2, t3, t4>, pack<t1, t4>>, pack<t2, t3>>);
+    CAV_PASS(eq<pack_diff_t<pack<t1, t1, t1, t1>, pack<t1, t4>>, pack<>>);
+    CAV_PASS(eq<pack_diff_t<pack<t1, t2>, pack<t3, t4>>, pack<t1, t2>>);
+    CAV_PASS(eq<pack_diff_t<pack<>, pack<t3, t4>>, pack<>>);
 }  // namespace
 #endif
 

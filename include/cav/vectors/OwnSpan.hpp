@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <concepts>
+#include <cstddef>
 #include <memory>
 #include <type_traits>
 
@@ -232,14 +233,17 @@ public:
         return ptr[i];
     }
 
-    constexpr void assign_all(T const& val) noexcept {
+    constexpr void assign_all(auto&& val) noexcept {
+        if (!std::is_constant_evaluated())  // UB?
+            assert(std::less<>{}(&val, ptr) || std::greater_equal<>{}(&val, ptr + sz));
+
         for (T& v : *this)
             v = val;
     }
 
 private:
     constexpr auto* _default_allocate(size_t n) {
-        return std::allocator<T>{}.allocate(n);
+        return std::allocator<no_cvr<T>>{}.allocate(n);
     }
 
     constexpr void _free() {

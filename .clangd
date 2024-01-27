@@ -78,8 +78,7 @@ Diagnostics:
             readability-magic-numbers,             # sometimes there's simply not a meaningful name.
 
             
-            readability-redundant-access-specifiers, # I actually use it to make "independent" blocks that 
-                                                     #  can be moved around, divinding methods from fields.
+            readability-redundant-access-specifiers, # I actually use it to make "independent" blocks that can be moved around, divinding methods from fields.
 
             readability-isolate-declaration, # Sometimes it just fits
 
@@ -92,8 +91,9 @@ Diagnostics:
             google-explicit-constructor, # In library code I use it often for abstractions
             hicpp-explicit-conversions,
 
-            cppcoreguidelines-avoid-const-or-ref-data-members, # I understand the rationale, but for some 
-                                                               # short-lived abstractions I use it quite often
+            cppcoreguidelines-avoid-const-or-ref-data-members, # I understand the rationale, but  for some short-lived abstractions I use it quite often
+
+            modernize-pass-by-value,
             ]
             
 InlayHints:

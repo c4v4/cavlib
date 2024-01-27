@@ -537,7 +537,7 @@ constexpr size_t idx_of_true(auto... args) {
 }
 
 constexpr size_t count_trues(auto... args) {
-    return (static_cast<size_t>(args) + ...);
+    return (static_cast<size_t>(args) + ... + 0);
 }
 
 }  // namespace cav

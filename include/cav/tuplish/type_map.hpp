@@ -126,8 +126,8 @@ struct type_map : Ts... {
 
     template <std::size_t N, value_wrap<StaticStr<N>> K>
     [[nodiscard]] static consteval bool has(ct<K> /*k*/) {
-        constexpr auto   tname        = static_cast<StaticStr<N>>(K);
-        constexpr size_t nexact_match = count_trues(tname == ts_name<Ts>...);
+        [[maybe_unused]] constexpr auto tname        = static_cast<StaticStr<N>>(K);
+        constexpr size_t                nexact_match = count_trues(tname == ts_name<Ts>...);
         return nexact_match == 1 ||
                (nexact_match < 1 && count_trues(ts_name<Ts>.starts_with(tname)...) == 1);
     }

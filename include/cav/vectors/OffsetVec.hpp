@@ -23,6 +23,7 @@
 
 #include "../comptime/mp_base.hpp"
 #include "../comptime/test.hpp"
+#include "cav/mish/util_functions.hpp"
 
 namespace cav {
 
@@ -36,7 +37,6 @@ namespace cav {
 /// A union is preferred over reinterpret_cast to enable usage in C++20 constexpr context.
 ///
 /// TODO(cava): atm iterators rely on implicit conversion, I should implement a custom iterator type
-/// TODO(cava): reserve? How can I avoid 2 allocations?
 template <typename T, typename AllocT = std::allocator<T>>
 class OffsetVec {
 
@@ -76,7 +76,7 @@ class OffsetVec {
     using const_reference = T const&;
     using pointer         = T*;
     using const_pointer   = T const*;
-    using size_type       = typename container_type::size_type;
+    using size_type       = typename container_type::difference_type;
     using difference_type = typename container_type::difference_type;
     using allocator_type  = typename container_type::allocator_type;
 
@@ -85,22 +85,25 @@ class OffsetVec {
     iterator       beg_it    = {};
 
 public:
+    constexpr OffsetVec()                                = default;
     constexpr OffsetVec(OffsetVec&&) noexcept            = default;
     constexpr OffsetVec& operator=(OffsetVec&&) noexcept = default;
 
-    constexpr OffsetVec(size_t c_offset, auto&& arg, auto&&... args)
+    constexpr OffsetVec(size_type c_offset, auto&& arg, auto&&... args)
         : vec(FWD(arg), FWD(args)...)
         , offset_it(vec.begin() + c_offset)
         , beg_it(vec.begin()) {
-        assert(c_offset < vec.size());
+        assert(0 <= c_offset && c_offset < static_cast<size_type>(vec.size()));
     }
 
     template <typename... Args>
-    constexpr OffsetVec(size_t c_offset, std::initializer_list<maybe_uninit_wrap> l, Args&&... args)
+    constexpr OffsetVec(size_type                                c_offset,
+                        std::initializer_list<maybe_uninit_wrap> l,
+                        Args&&... args)
         : vec(l, FWD(args)...)
         , offset_it(vec.begin() + c_offset)
         , beg_it(vec.begin()) {
-        assert(c_offset < vec.size());
+        assert(0 <= c_offset && c_offset < static_cast<size_type>(vec.size()));
     }
 
     constexpr OffsetVec(OffsetVec const& other)
@@ -120,11 +123,11 @@ public:
             std::destroy_at(std::addressof(elem.value));
     }
 
-    [[nodiscard]] constexpr difference_type get_offset() const {
+    [[nodiscard]] constexpr size_type get_offset() const {
         return offset_it - beg_it;
     }
 
-    constexpr difference_type set_offset(size_t new_offset) {
+    constexpr size_type set_offset(size_type new_offset) {
         assert(new_offset < size());
         auto old_offset = offset_it;
         offset_it       = beg_it + new_offset;
@@ -197,42 +200,27 @@ public:
         return end() - mid();
     }
 
-    [[nodiscard]] constexpr size_t capacity() const {
+    [[nodiscard]] constexpr size_type capacity() const {
         return vec.capacity();
     }
 
-    [[nodiscard]] constexpr ptrdiff_t front_empty_space() const {
+    [[nodiscard]] constexpr size_type front_space() const {
+        assert(beg_it - vec.begin() >= 0);
         return beg_it - vec.begin();
     }
 
-    [[nodiscard]] constexpr ptrdiff_t back_empty_space() const {
-        return vec.capacity() - vec.size();
-    }
-
-    constexpr reference emplace_back(auto&&... args) {
-        if (back_empty_space() == 0) {
-            difference_type offset = get_offset(), beg_offset = front_empty_space();
-            reference       res = vec.emplace_back(FWD(args)...).value;
-            beg_it              = vec.begin() + beg_offset;
-            offset_it           = beg_it + offset;
-            return res;
-        }
-        return vec.emplace_back(FWD(args)...).value;
-    }
-
-    constexpr void push_back(auto&& arg) {
-        if (!std::is_constant_evaluated())  // alias check
-            assert(std::less<>{}(&arg, beg_it.data()) || std::greater_equal{}(&arg, end().data()));
-        vec.emplace_back(FWD(arg));
-    }
-
-    constexpr reference emplace_front(auto&&... args) {
-        if (front_empty_space() == 0) {
-            difference_type offset = get_offset(), beg_offset = (size() + 1) / 2;
+    constexpr void make_space_front(size_type n) {
+        if (n > front_space()) {
+            size_type offset = get_offset(), beg_offset = n - front_space();
             vec.insert(vec.begin(), beg_offset, maybe_uninit_wrap{maybe_uninit_wrap::uninit_value});
             beg_it    = vec.begin() + beg_offset;
             offset_it = beg_it + offset;
         }
+    }
+
+    constexpr reference emplace_front(auto&&... args) {
+        if (front_space() == 0)
+            make_space_front(cav::max(4, (size() + 1) / 2));
         --beg_it;
         // no need to destroy, trivial dtor
         std::construct_at(std::addressof(beg_it->value), FWD(args)...);
@@ -240,18 +228,46 @@ public:
     }
 
     constexpr void push_front(auto&& arg) {
-        if (!std::is_constant_evaluated())  // alias check
-            assert(std::less<>{}(&arg, beg_it.data()) || std::greater_equal{}(&arg, end().data()));
-        vec.emplace_front(FWD(arg));
+        if (!std::is_constant_evaluated() && vec.capacity() > 0)  // alias check
+            assert(std::less<>{}(&arg, &beg_it->value) ||
+                   std::greater_equal{}(&arg, &end()->value));
+        emplace_front(FWD(arg));
+    }
+
+    constexpr void pop_front() {
+        std::destroy_at(&beg_it->val);
+        ++beg_it;
+    }
+
+    [[nodiscard]] constexpr size_type back_space() const {
+        assert(vec.capacity() - vec.size() >= 0);
+        return vec.capacity() - vec.size();
+    }
+
+    constexpr void make_space_back(size_type n) {
+        if (n > back_space()) {
+            size_type offset = get_offset(), beg_offset = front_space();
+            vec.reserve(vec.size() + n);
+            beg_it    = vec.begin() + beg_offset;
+            offset_it = beg_it + offset;
+        }
+    }
+
+    constexpr reference emplace_back(auto&&... args) {
+        if (back_space() <= 0)
+            make_space_back(cav::max(4, (size() + 1) / 2));
+        return vec.emplace_back(FWD(args)...).value;
+    }
+
+    constexpr void push_back(auto&& arg) {
+        if (!std::is_constant_evaluated() && vec.capacity() > 0)  // alias check
+            assert(std::less<>{}(&arg, &beg_it->value) ||
+                   std::greater_equal{}(&arg, &end()->value));
+        emplace_back(FWD(arg));
     }
 
     constexpr void pop_back() {
         vec.pop_back();
-    }
-
-    constexpr void pop_front() {
-        beg_it->~maybe_uninit_wrap();
-        ++beg_it;
     }
 };
 }  // namespace cav
@@ -292,8 +308,8 @@ namespace {
         assert(!ovec.empty());
         assert(ovec.size() == 7);
         assert(ovec.capacity() == 7);
-        assert(ovec.front_empty_space() == 0);
-        assert(ovec.back_empty_space() == 0);
+        assert(ovec.front_space() == 0);
+        assert(ovec.back_space() == 0);
 
         for (bool& b : ovec)
             b = true;
@@ -314,21 +330,25 @@ namespace {
         assert(ovec[-2] == true);
         assert(ovec[-1] == true);
         assert(ovec[0] == false);
+    });
+
+    CAV_BLOCK_PASS({
+        auto ovec = OffsetVec<bool>(6, 7);
 
         // Element insertion (conservative checks, cannot assume std::vector internals)
-        ovec.emplace_front();  // cap=14, frt_empty=3, bck_empty=4
-        assert(ovec.capacity() >= 11 && ovec.front_empty_space() >= 3);
-        ovec.emplace_front(true);  // cap=14, frt_empty=2, bck_empty=4
-        assert(ovec.capacity() >= 11 && ovec.front_empty_space() >= 2);
-        ovec.emplace_front(false);  // cap=14, frt_empty=1, bck_empty=4
-        assert(ovec.capacity() >= 11 && ovec.front_empty_space() >= 1);
+        ovec.emplace_front();  // cap=14, frt_space=3, bck_space=4
+        assert(ovec.capacity() >= 11 && ovec.front_space() == 3);
+        ovec.emplace_front(true);  // cap=14, frt_space=2, bck_space=4
+        assert(ovec.capacity() >= 11 && ovec.front_space() == 2);
+        ovec.emplace_front(false);  // cap=14, frt_space=1, bck_space=4
+        assert(ovec.capacity() >= 11 && ovec.front_space() == 1);
 
-        ovec.emplace_back();  // cap=14, frt_empty=1, bck_empty=2
-        assert(ovec.capacity() >= 12 && ovec.front_empty_space() >= 1);
-        ovec.emplace_back(true);  // cap=14, frt_empty=1, bck_empty=1
-        assert(ovec.capacity() >= 13 && ovec.front_empty_space() >= 1);
-        ovec.emplace_back(false);  // cap=14, frt_empty=1, bck_empty=0
-        assert(ovec.capacity() >= 14 && ovec.front_empty_space() >= 1);
+        ovec.emplace_back();  // cap=14, frt_space=1, bck_space=2
+        assert(ovec.capacity() >= 12 && ovec.front_space() == 1);
+        ovec.emplace_back(true);  // cap=14, frt_space=1, bck_space=1
+        assert(ovec.capacity() >= 13 && ovec.front_space() == 1);
+        ovec.emplace_back(false);  // cap=14, frt_space=1, bck_space=0
+        assert(ovec.capacity() >= 14 && ovec.front_space() == 1);
 
         assert(ovec[-9] == false);
         assert(ovec[-8] == true);
@@ -336,6 +356,37 @@ namespace {
         assert(ovec[1] == false);
         assert(ovec[2] == true);
         assert(ovec[3] == false);
+    });
+
+    CAV_BLOCK_PASS({
+        auto ovec = OffsetVec<bool>();
+        ovec.push_front(true);  // resize +4
+        assert(ovec.capacity() >= 4 && ovec.front_space() == 3);
+        ovec.push_front(false);
+        assert(ovec.capacity() >= 4 && ovec.front_space() == 2);
+        ovec.push_front(false);
+        assert(ovec.capacity() >= 4 && ovec.front_space() == 1);
+        ovec.push_front(false);
+        assert(ovec.capacity() >= 4 && ovec.front_space() == 0);
+        ovec.push_front(false);  // resize +4
+        assert(ovec.capacity() >= 8 && ovec.front_space() == 3);
+
+        ovec.push_back(false);  // resize size()/2 == 4
+        assert(ovec.capacity() >= 12 && ovec.back_space() == 3);
+        ovec.push_back(true);
+        assert(ovec.capacity() >= 12 && ovec.back_space() == 2);
+        ovec.push_back(false);
+        assert(ovec.capacity() >= 12 && ovec.back_space() == 1);
+        ovec.push_back(false);
+        assert(ovec.capacity() >= 12 && ovec.back_space() == 0);
+        ovec.push_back(false);  // resize (size()+1)/2 == 5
+        assert(ovec.capacity() >= 17 && ovec.back_space() == 4);
+
+        ovec.set_offset(3);
+        assert(ovec[0] == false);
+        assert(ovec[1] == true);
+        assert(ovec[2] == false);
+        assert(ovec[3] == true);
     });
 
 }  // namespace

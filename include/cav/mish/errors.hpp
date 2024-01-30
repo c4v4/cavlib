@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <source_location>
+#include <type_traits>
 
 #include "../comptime/test.hpp"
 
@@ -41,12 +42,15 @@ inline void failed_assert() {
 }
 
 template <typename... Ts>
-[[noreturn]] void exit_with_message(::fmt::format_string<Ts...> fmt, Ts&&... args) {
-    std::fflush(stdout);
-    fmt::print(stderr, fmt, FWD(args)...);
-    std::fflush(stderr);    
-    failed_assert();
-    exit(EXIT_FAILURE);
+[[noreturn]] constexpr void exit_with_message(::fmt::format_string<Ts...> fmt, Ts&&... args) {
+    if (std::is_constant_evaluated())
+        failed_assert();
+    else {
+        std::fflush(stdout);
+        fmt::print(stderr, fmt, FWD(args)...);
+        std::fflush(stderr);
+        exit(EXIT_FAILURE);
+    }
 }
 
 }  // namespace cav

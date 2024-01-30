@@ -22,6 +22,7 @@ Only files and folder in `include/cav` are listed here, ignoring `experimental`.
 
 ### `mish`
  - [`Chrono`](include/cav/mish/Chrono.hpp): wrapper around C++ chrono library.
+ - [`ClParser`](include/cav/mish/ClParser.hpp): simple type_map based command-line argument parser.
  - [`errors`](include/cav/mish/errors.hpp): macros and functions for handling exceptions and errors, with support for both exception-enabled and exception-disabled environments.
  - [`RaiiWrap`](include/cav/mish/RaiiWrap.hpp): RAII wrapper for managing resources, providing automatic cleanup when the wrapper goes out of scope.
  - [`util_functions`](include/cav/mish/util_functions.hpp): utility functions simple enought to be deemed reusable in multiple projects.

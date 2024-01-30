@@ -165,12 +165,16 @@ void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = 
 }
 
 template <typename OnErrT = decltype([] { abort(); })>
-void from_string_view_checked(std::string_view str, std::string_view& val, OnErrT&& /*err*/ = {}) {
+constexpr void from_string_view_checked(std::string_view  str,
+                                        std::string_view& val,
+                                        OnErrT&& /*err*/ = {}) {
     val = str;
 }
 
 template <typename OnErrT = decltype([] { abort(); })>
-void from_string_view_checked(std::string_view str, std::string& val, OnErrT&& /*err*/ = {}) {
+constexpr void from_string_view_checked(std::string_view str,
+                                        std::string&     val,
+                                        OnErrT&& /*err*/ = {}) {
     val = str;
 }
 

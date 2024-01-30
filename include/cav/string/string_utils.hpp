@@ -162,7 +162,18 @@ void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = 
                    static_cast<std::string_view>(type_name<T>::name));
         on_error();
     }
-}  // namespace
+}
+
+template <typename OnErrT = decltype([] { abort(); })>
+void from_string_view_checked(std::string_view str, std::string_view& val, OnErrT&& /*err*/ = {}) {
+    val = str;
+}
+
+template <typename OnErrT = decltype([] { abort(); })>
+void from_string_view_checked(std::string_view str, std::string& val, OnErrT&& /*err*/ = {}) {
+    val = str;
+}
+
 #endif
 
 }  // namespace cav

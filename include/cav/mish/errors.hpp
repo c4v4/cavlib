@@ -4,6 +4,7 @@
 #include <fmt/core.h>
 
 #include <cassert>
+#include <source_location>
 
 #include "../comptime/test.hpp"
 
@@ -35,12 +36,16 @@ template <typename... Ts>
     CAV_THROW(std::runtime_error(msg));
 }
 
+inline void failed_assert() {
+    assert(!"Debug: syntetic fail.");
+}
+
 template <typename... Ts>
 [[noreturn]] void exit_with_message(::fmt::format_string<Ts...> fmt, Ts&&... args) {
     std::fflush(stdout);
     fmt::print(stderr, fmt, FWD(args)...);
-    std::fflush(stderr);
-    assert(!"Debug mode: syntetic fail to pause before exit.");
+    std::fflush(stderr);    
+    failed_assert();
     exit(EXIT_FAILURE);
 }
 

@@ -40,7 +40,7 @@ namespace {
     CAV_PASS(sizeof(ts2) == 44);
     CAV_PASS(sizeof(ts3) == 4);
     CAV_PASS(sizeof(ts4) == 1);
-    CAV_PASS(ts1["int"_cs] == 1);
+    CAV_PASS(ts1["std::int32_t"_cs] == 1);
     CAV_PASS(ts1[tag<float>] == 2.0);
     CAV_PASS(ts2[tag<float[10]>][9] == 0);
     CAV_PASS(ts3[tag<int>] == 4);

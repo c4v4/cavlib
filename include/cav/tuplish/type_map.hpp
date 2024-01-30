@@ -59,6 +59,9 @@ struct type_map : Ts... {
 
     template <typename T>
     static constexpr auto ts_name = type_name<typename T::key_t>::name;
+    using keys_t                  = pack<typename Ts::key_t...>;
+    using values_t                = pack<typename Ts::value_t...>;
+    using elems_t                 = pack<Ts...>;
 
     using Ts::operator[]...;
 
@@ -79,16 +82,28 @@ struct type_map : Ts... {
     }
 
     // return true if early exit happens, can work as "any"
-    constexpr bool for_each(auto&& fn) && {
-        return (ret_bool_or_false(FWD(fn), std::move(Ts::value)) || ...);
+    template <typename F>
+    constexpr bool for_each(F&& fn) && {
+        if constexpr ((eq<bool, lambda_ret_t<F, typename Ts::value_t&&>> && ...))
+            return (ret_bool_or_false(FWD(fn), std::move(Ts::value)) || ...);
+        else
+            (void)(FWD(fn)(std::move(Ts::value)), ...);
     }
 
-    constexpr bool for_each(auto&& fn) const& {
-        return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
+    template <typename F>
+    constexpr auto for_each(F&& fn) const& {
+        if constexpr ((eq<bool, lambda_ret_t<F, typename Ts::value_t const&>> && ...))
+            return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
+        else
+            (void)(FWD(fn)(Ts::value), ...);
     }
 
-    constexpr bool for_each(auto&& fn) & {
-        return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
+    template <typename F>
+    constexpr auto for_each(F&& fn) & {
+        if constexpr ((eq<bool, lambda_ret_t<F, typename Ts::value_t&>> && ...))
+            return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
+        else
+            (void)(FWD(fn)(Ts::value), ...);
     }
 
     // return true if fn has been called (otherwise i was larger than size())
@@ -167,6 +182,9 @@ struct type_map : Ts... {
     }
 };
 
+template <typename... Ts>
+type_map(Ts...) -> type_map<Ts...>;
+
 template <typename, typename>
 struct make_tmap_from_lists;
 
@@ -193,7 +211,7 @@ namespace {
     CAV_PASS(sizeof(tm2) == 44);
     CAV_PASS(sizeof(tm3) == 4);
     CAV_PASS(sizeof(tm4) == 1);
-    CAV_PASS(tm1["int"_cs] == 1);
+    CAV_PASS(tm1["std::int32_t"_cs] == 1);  // use full names
     CAV_PASS(tm1[tag<ct<2>>] == 2.0);
     CAV_PASS(tm2[tag<float>][9] == 0);
     CAV_PASS(tm3[tag<int>] == 4);

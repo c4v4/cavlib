@@ -256,13 +256,13 @@ template <template <class...> class TupT, typename... Ts>
     return detail::partial_compare_impl<1>(t1, t2, get<0>(t1) <=> get<0>(t2));
 }
 
-template <typename SbT = ct<0>, typename SeT = ct<type_max<int>>>
+template <typename SbT = ct<0>, typename SeT = ct<type_max<int64_t>>>
 [[nodiscard]] CAV_PURE constexpr auto subspan(auto&& container,
-                                              int    skip_beg = {},
-                                              int    skip_end = {}) {
-    int c_size = std::ssize(container);
-    int b_idx  = clip(skip_beg + (skip_beg >= 0 ? 0 : c_size), 0, c_size);
-    int e_idx  = clip(skip_end + (skip_end >= 0 ? 0 : c_size), 0, c_size);
+                                              SbT    skip_beg = {},
+                                              SeT    skip_end = {}) {
+    int64_t c_size = std::ssize(container);
+    int64_t b_idx  = clip(static_cast<int64_t>(skip_beg + (skip_beg >= 0 ? 0 : c_size)), 0, c_size);
+    int64_t e_idx  = clip(static_cast<int64_t>(skip_end + (skip_end >= 0 ? 0 : c_size)), 0, c_size);
 
     if (b_idx > e_idx)
         return std::span{std::begin(container), std::begin(container)};
@@ -334,33 +334,39 @@ namespace {
 
 /// Simple range stuff
 
-template <typename T>
-constexpr void iota(auto& container, T start, T const& step = 1) noexcept {
-    for (size_t i = 0; i < container.size(); ++i) {
-        container[i] = start;
-        start += step;
-    }
+constexpr void iota(auto& container, auto&& start, TYPEOF(start) const& step = 1) {
+    container[0] = FWD(start);
+    for (size_t i = 1; i < container.size(); ++i)
+        container[i] = container[i - 1] + step;
 }
 
 template <typename T>
-[[nodiscard]] constexpr cav::OwnSpan<T> make_iota(T start, T end, T const& step = 1) noexcept {
+[[nodiscard]] constexpr cav::OwnSpan<T> make_iota(T const& start, T const& end, T const& step = 1) {
     auto container = cav::OwnSpan<T>((end - start) / step);
     cav::iota(container, start, step);
     return container;
 }
 
 template <template <class...> class ContTmpl, typename T>
-[[nodiscard]] constexpr ContTmpl<T> make_iota(T start, T end, T const& step = 1) noexcept {
+[[nodiscard]] constexpr ContTmpl<T> make_iota(T const& start, T const& end, T const& step = 1) {
     auto container = ContTmpl<T>((end - start) / step);
     cav::iota(container, start, step);
     return container;
 }
 
 template <typename ContT, typename T>
-[[nodiscard]] constexpr ContT make_iota(T start, T end, T step = 1) noexcept {
+[[nodiscard]] constexpr ContT make_iota(T const& start, T const& end, T const& step = 1) {
     auto container = ContT((end - start) / step);
     cav::iota(container, start, step);
     return container;
+}
+
+constexpr void fill(auto&       container,
+                    auto const& val,
+                    int64_t     start = {},
+                    int64_t     end   = cav::type_max<int64_t>) {
+    for (auto& elem : cav::subspan(container, start, end))
+        elem = val;
 }
 
 [[nodiscard]] constexpr size_t find_idx(auto const& container, auto const& value) {
@@ -412,11 +418,11 @@ template <auto Default>
     return (detail::identity(FWD(args)), ...);
 }
 
-/// @brief In some places C++ does not applies the implicit conversion that otherwise applies in any
-/// other place. Less implicit conversion is good, but not when it break what one expects, like when
-/// one use aggregates and double cannot be casted into float for example when using aggregate
-/// initialization. This cast simply use the implicit cast that works in the other places (making in
-/// essence an explicit-cast that works only when the implicit cast works).
+/// @brief In some places C++ does not applies the implicit conversion that otherwise applies in
+/// any other place. Less implicit conversion is good, but not when it break what one expects,
+/// like when one use aggregates and double cannot be casted into float for example when using
+/// aggregate initialization. This cast simply use the implicit cast that works in the other
+/// places (making in essence an explicit-cast that works only when the implicit cast works).
 /// @tparam To
 /// @tparam From
 template <typename To, typename From>

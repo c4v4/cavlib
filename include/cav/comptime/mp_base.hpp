@@ -22,6 +22,14 @@
 
 #include "../comptime/syntactic_sugars.hpp"
 
+template <char... Cs>
+[[nodiscard]] constexpr std::size_t operator""_uz() {
+    return [] {
+        std::size_t n = 0;
+        return ((n = n * 10 + (Cs - '0')), ..., n);
+    }();
+}
+
 namespace cav {
 
 /// @brief Void can be returned from auto functions, but cannot be passed as argument to other
@@ -110,14 +118,6 @@ struct ct {
 
 template <value_wrap X>
 static constexpr auto ct_v = ct<X>{};
-
-template <char... Cs>
-[[nodiscard]] constexpr std::size_t operator""_uz() {
-    return [] {
-        std::size_t n = 0;
-        return ((n = n * 10 + (Cs - '0')), ..., n);
-    }();
-}
 
 template <char... Cs>
 [[nodiscard]] constexpr auto operator""_ct() {

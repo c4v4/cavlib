@@ -20,6 +20,7 @@
 #include <source_location>
 #include <string_view>
 
+#include "../comptime/macros.hpp"   //
 #include "../string/StaticStr.hpp"  //
 
 // The old way
@@ -75,6 +76,27 @@ public:
     static constexpr auto name       = _type_name<std::remove_cvref_t<T>>();
     static constexpr auto local_name = _object_type_name<name>();
 };
+
+#define CAV_STD_NAME_SPEC(X)                                                \
+    template <>                                                             \
+    struct type_name<std::X> {                                              \
+        static constexpr auto full_name  = str_concat("std::", CAV_STR(X)); \
+        static constexpr auto name       = str_concat("std::", CAV_STR(X)); \
+        static constexpr auto local_name = StaticStr{CAV_STR(X)};           \
+    }
+
+CAV_STD_NAME_SPEC(string_view);
+CAV_STD_NAME_SPEC(string);
+CAV_STD_NAME_SPEC(int8_t);
+CAV_STD_NAME_SPEC(int16_t);
+CAV_STD_NAME_SPEC(int32_t);
+CAV_STD_NAME_SPEC(int64_t);
+CAV_STD_NAME_SPEC(uint8_t);
+CAV_STD_NAME_SPEC(uint16_t);
+CAV_STD_NAME_SPEC(uint32_t);
+CAV_STD_NAME_SPEC(uint64_t);
+
+
 }  // namespace cav
 
 #endif /* CAV_INCLUDE_TYPE_NAME_HPP */

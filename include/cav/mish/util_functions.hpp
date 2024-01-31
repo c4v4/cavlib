@@ -88,30 +88,38 @@ namespace {
     return static_cast<int>(range.size());
 }
 
-[[nodiscard]] CAV_CONST constexpr bool max(bool b1, bool b2) noexcept {
-    return b1 || b2;
+//// MAX
+[[nodiscard]] CAV_CONST constexpr decl_auto max(auto&& v) noexcept {
+    return FWD(v);
 }
 
 template <typename T>
-[[nodiscard]] CAV_PURE constexpr auto max(T const& v1, T const& v2) noexcept {
-    return v1 >= v2 ? v1 : v2;
+[[nodiscard]] CAV_PURE constexpr auto max(T const&    v1,
+                                          auto const& v2,
+                                          auto const&... tail) noexcept {
+    decl_auto mtail = max(v2, tail...);  // TODO(cava): make it logarithmic
+    return (v1 >= mtail ? v1 : static_cast<T>(mtail));
 }
 
-[[nodiscard]] CAV_PURE constexpr auto max(auto const& v1, auto const& v2) noexcept {
-    return v1 >= v2 ? v1 : static_cast<TYPEOF(v1)>(v2);
+[[nodiscard]] CAV_CONST constexpr bool max(bool b1, bool b2, auto... tail) noexcept {
+    return b1 || max(b2, tail...);
 }
 
-[[nodiscard]] CAV_CONST constexpr bool min(bool b1, bool b2) noexcept {
-    return b1 && b2;
+//// MIN
+[[nodiscard]] CAV_CONST constexpr decl_auto min(auto&& v) noexcept {
+    return FWD(v);
 }
 
 template <typename T>
-[[nodiscard]] CAV_PURE constexpr auto min(T const& v1, T const& v2) noexcept {
-    return v1 <= v2 ? v1 : v2;
+[[nodiscard]] CAV_PURE constexpr auto min(T const&    v1,
+                                          auto const& v2,
+                                          auto const&... tail) noexcept {
+    decl_auto mtail = min(v2, tail...);  // TODO(cava): make it logarithmic
+    return v1 <= mtail ? v1 : static_cast<T>(mtail);
 }
 
-[[nodiscard]] CAV_PURE constexpr auto min(auto const& v1, auto const& v2) noexcept {
-    return v1 <= v2 ? v1 : static_cast<TYPEOF(v1)>(v2);
+[[nodiscard]] CAV_CONST constexpr bool min(bool b1, bool b2, auto const&... tail) noexcept {
+    return b1 && min(b2, tail...);
 }
 
 [[nodiscard]] CAV_PURE constexpr auto clip(auto const& v, auto const& lb, auto const& ub) noexcept {

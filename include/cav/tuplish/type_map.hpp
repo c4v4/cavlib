@@ -85,7 +85,7 @@ struct type_map : Ts... {
     template <typename F>
     constexpr bool for_each(F&& fn) && {
         if constexpr ((eq<bool, lambda_ret_t<F, typename Ts::value_t&&>> && ...))
-            return (ret_bool_or_false(FWD(fn), std::move(Ts::value)) || ...);
+            return (FWD(fn)(std::move(Ts::value)) || ...);
         else
             (void)(FWD(fn)(std::move(Ts::value)), ...);
     }
@@ -93,7 +93,7 @@ struct type_map : Ts... {
     template <typename F>
     constexpr auto for_each(F&& fn) const& {
         if constexpr ((eq<bool, lambda_ret_t<F, typename Ts::value_t const&>> && ...))
-            return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
+            return (FWD(fn)(Ts::value) || ...);
         else
             (void)(FWD(fn)(Ts::value), ...);
     }
@@ -101,7 +101,7 @@ struct type_map : Ts... {
     template <typename F>
     constexpr auto for_each(F&& fn) & {
         if constexpr ((eq<bool, lambda_ret_t<F, typename Ts::value_t&>> && ...))
-            return (ret_bool_or_false(FWD(fn), Ts::value) || ...);
+            return (FWD(fn)(Ts::value) || ...);
         else
             (void)(FWD(fn)(Ts::value), ...);
     }

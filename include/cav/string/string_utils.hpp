@@ -173,6 +173,13 @@ constexpr void from_string_view_checked(std::string_view  str,
 
 template <typename OnErrT = decltype([] { abort(); })>
 constexpr void from_string_view_checked(std::string_view str,
+                                        char const*&     val,
+                                        OnErrT&& /*err*/ = {}) {
+    val = str.data();
+}
+
+template <typename OnErrT = decltype([] { abort(); })>
+constexpr void from_string_view_checked(std::string_view str,
                                         std::string&     val,
                                         OnErrT&& /*err*/ = {}) {
     val = str;

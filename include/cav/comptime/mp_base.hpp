@@ -67,7 +67,7 @@ struct value_wrap : T {
 
 // Wrapper needed for floating points with clang
 template <typename T>
-requires(!std::is_pointer_v<T> && !std::is_class_v<T>)
+requires(!std::is_array_v<T> && !std::is_class_v<T>)
 struct value_wrap<T> {
     using type = T;
     T value    = {};

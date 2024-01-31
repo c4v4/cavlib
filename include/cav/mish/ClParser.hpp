@@ -30,14 +30,15 @@ namespace cav {
 
 static constexpr char spaces[] = " \t\n\v\f\r";
 
-/// @brief A command-line argument parser that uses a cav::type_map to manage values.
+/// @brief A command-line argument parser that uses a type_map to manage values.
 /// It parses command-line arguments into a map of key-value pairs, where the keys are the first
 /// flag of the arguments and the values are the parsed argument values. It supports both positional
 /// and flag-based arguments. It also provides a method to print the arguments and their
 /// descriptions, which can be used for generating help messages
+/// @tparam ArTs The types of the arguments.
 template <typename... ArTs>
-struct ClParser : cav::type_map<ArTs...> {
-    using base = cav::type_map<ArTs...>;
+struct ClParser : type_map<ArTs...> {
+    using base = type_map<ArTs...>;
 
     constexpr ClParser() = default;
 
@@ -50,19 +51,21 @@ struct ClParser : cav::type_map<ArTs...> {
     constexpr void parse_cli(std::span<T> const& args) {
         for (auto it = args.begin() + 1; it != args.end();)
             if (!base::for_each([&](auto& arg) { return arg.try_consume(it); }))
-                cav::exit_with_message("Error: unknown argument: {}\n", *it);
+                exit_with_message("Error: unknown argument: {}\n", *it);
     }
 
-    template <size_t FlagSz = 10, size_t DescrSz = 36>
+    template <size_t FlagSz = 0, size_t DescrSz = 24>
     void print_args() const {
-        this->reduce([]<class... Ts>(Ts const&... args) {  // comptime formatting
-            static constexpr auto msg = (... + []<class T>(cav::wrap<T>) {
-                auto fmtflags = cav::StaticStr<cav::max(T::flags.size(), FlagSz + 1)>{T::flags};
-                cav::fill(fmtflags, ' ', T::flags.size() - 1, -1);
-                auto fmtdescr = cav::StaticStr<cav::max(T::descr.size(), DescrSz + 1)>{T::descr};
-                cav::fill(fmtdescr, ' ', T::descr.size() - 1, -1);
-                return "  -" + fmtflags + ": " + fmtdescr + " set to: {}\n";
-            }(cav::wrap_v<Ts>));
+        base::reduce([]<class... Ts>(Ts const&... args) {  // comptime formatting
+            static constexpr size_t flag_sz  = max(FlagSz + 1, Ts::flags.size()...);
+            static constexpr size_t descr_sz = max(DescrSz + 1, Ts::descr.size()...);
+            static constexpr auto   msg      = (... + []<class T>(wrap<T>) {
+                auto fmtflags = StaticStr<flag_sz>{T::flags};
+                fill(fmtflags, ' ', T::flags.size() - 1, -1);
+                auto fmtdescr = StaticStr<descr_sz>{T::descr};
+                fill(fmtdescr, ' ', T::descr.size() - 1, -1);
+                return "  -" + fmtflags + " : " + fmtdescr + " set to: {}\n";
+            }(wrap_v<Ts>));
             fmt::print(msg, args.value...);
         });
     }
@@ -73,33 +76,35 @@ namespace detail {
         auto   str = std::string_view(*args_it);
         size_t beg = str.find_first_not_of(SPACES);  // remove heading spaces
         if (str[beg] != '-')
-            cav::exit_with_message("Error parsing cli arguments: {}", str.substr(beg));
+            exit_with_message("Error parsing cli arguments: {}", str.substr(beg));
 
-        beg       = str.find_first_not_of('-', beg);       // remove heading '-'s
-        size_t sz = str.find_first_of(SPACES, beg) - beg;  // get first word size
+        beg       = str.find_first_not_of('-', beg);              // remove heading '-'s
+        size_t sz = str.find_last_not_of(SPACES, beg) - beg + 1;  // get first word size
 
         // check if equal to flag
         return str.substr(beg, sz);
     }
 }  // namespace detail
 
-template <typename T,              // stored value type
-          cav::value_wrap Dflt,    // default init literal (can differ from T)
-          cav::StaticStr  Descr,   // param description
-          cav::StaticStr  Flg,     // param main flag (used also to retrieve value)
-          cav::StaticStr... Flgs>  // alternative flags
+/// @brief A command-line argument that can be parsed by ClParser.
+/// @tparam T The type of the argument value.
+/// @tparam D The default value of the argument.
+/// @tparam Des The description of the argument.
+/// @tparam F The first flag of the argument.
+/// @tparam Fs The other flags of the argument.
+template <typename T, value_wrap D, StaticStr Des, StaticStr F, StaticStr... Fs>
 struct CliArg {
-    using key_t = cav::ct<Flg>;
+    using key_t      = ct<F>;
+    using val_wrap_t = decltype(D);
 
     struct value_t {
-        T value;
-
-        static constexpr auto flags = ((Flgs + "|") + ... + Flg);
-        static constexpr auto descr = Descr + " (" + cav::type_name<T>::local_name + ")";
+        T                     value;
+        static constexpr auto flags = ((Fs + "|") + ... + F);
+        static constexpr auto descr = Des + " (" + type_name<T>::local_name + ")";
 
         constexpr bool try_consume(auto& args_it) {
             // check if equal to flag
-            if (auto w = detail::get_flag_name(args_it); ((w != Flg) && ... && (w != Flgs)))
+            if (auto w = detail::get_flag_name(args_it); ((w != F) && ... && (w != Fs)))
                 return false;
 
             // if yes, parse the next word as T
@@ -108,45 +113,44 @@ struct CliArg {
             size_t beg = str.find_first_not_of(spaces);
             size_t sz  = str.find_first_of(spaces, beg) - beg;
 
-            cav::from_string_view_checked<T>(str.substr(beg, sz), value);
+            from_string_view_checked<T>(str.substr(beg, sz), value);
             ++args_it;
 
             return true;
         }
-    } value = {Dflt.value};
+    } value = {D.value};
 
-    [[nodiscard]] constexpr T const& operator[](cav::ct<Flg> /*t*/) const {
+    [[nodiscard]] constexpr T const& operator[](ct<F> /*t*/) const {
         return value.value;
     }
 
-    [[nodiscard]] constexpr T& operator[](cav::ct<Flg> /*t*/) {
+    [[nodiscard]] constexpr T& operator[](ct<F> /*t*/) {
         return value.value;
     }
 };
 
-template <cav::value_wrap Dflt, cav::StaticStr Descr, cav::StaticStr F, cav::StaticStr... Fs>
-struct CliArg<void, Dflt, Descr, F, Fs...> {
-    using key_t = cav::ct<F>;
+template <value_wrap<bool> D, StaticStr Des, StaticStr F, StaticStr... Fs>
+struct CliArg<void, D, Des, F, Fs...> {
+    using key_t = ct<F>;
 
     struct value_t {
         bool                  value;
         static constexpr auto flags = ((Fs + "|") + ... + F);
-        static constexpr auto descr = Descr;
+        static constexpr auto descr = Des;
 
         constexpr bool try_consume(auto& args_it) {
-            auto w = detail::get_flag_name(args_it);
-            value  = ((w == F) || ... || (w == Fs));
-            if (value)
-                ++args_it;
-            return value;
+            if (auto w = detail::get_flag_name(args_it); ((w != F) && ... && (w != Fs)))
+                return false;
+            ++args_it;
+            return value = true;
         }
-    } value = {Dflt.value};
+    } value = {D.value};
 
-    [[nodiscard]] constexpr bool operator[](cav::ct<F> /*t*/) const {
+    [[nodiscard]] constexpr bool operator[](ct<F> /*t*/) const {
         return value.value;
     }
 
-    [[nodiscard]] constexpr bool& operator[](cav::ct<F> /*t*/) {
+    [[nodiscard]] constexpr bool& operator[](ct<F> /*t*/) {
         return value.value;
     }
 };
@@ -158,7 +162,7 @@ namespace {
                    CliArg<std::string, "none", "Stirng", "string", "s">> {};
 
     CAV_BLOCK_PASS({
-        // parsing it constexpr from c++23, for now just test string and void args
+        // parsing is constexpr from c++23, for now just test string and void args
         char const* args[]    = {"./test", "-s", "string", "-h"};
         auto        args_span = std::span(args, std::size(args));
         auto        cli       = MyTestCliParser{};
@@ -172,9 +176,9 @@ namespace {
     });
 
     CAV_BLOCK_FAIL({
-        char const* args[]    = {"./test", "-s", "string", "-h", "true"};  //-h expects no value
-        auto        args_span = std::span(args, std::size(args));
-        auto        cli       = MyTestCliParser{args_span};
+        char const* args[]        = {"./test", "-s", "string", "-h", "true"};  //-h expects no value
+        auto        args_span     = std::span(args, std::size(args));
+        [[maybe_unused]] auto cli = MyTestCliParser{args_span};
     });
 
 }  // namespace

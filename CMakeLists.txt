@@ -12,6 +12,6 @@ add_library(cav::cav ALIAS cav)
 target_compile_features(cav INTERFACE cxx_std_20)
 
 target_include_directories(
-    cav INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    cav INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include> 
                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 

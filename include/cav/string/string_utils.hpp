@@ -20,8 +20,10 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
+#include "../comptime/enum_name.hpp"
 #include "../comptime/type_name.hpp"
 
 #if __has_include(<fmt/core.h>)
@@ -164,6 +166,19 @@ void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = 
     }
 }
 
+template <typename T, typename OnErrT = decltype([] { abort(); })>
+requires std::is_enum_v<T>
+void from_string_view_checked(std::string_view str, T& val, OnErrT&& on_error = {}) {
+    using utype = std::underlying_type_t<T>;
+    for (utype i = 0; i < enum_size<T>::value; ++i)
+        if (enum_name<T>(static_cast<T>(i)) == str) {
+            val = static_cast<T>(i);
+            return;
+        }
+    fmt::print(stderr, "Error: enum value {} not found in enum {}\n", str, type_name<T>::name);
+    on_error();
+}
+
 template <typename OnErrT = decltype([] { abort(); })>
 constexpr void from_string_view_checked(std::string_view  str,
                                         std::string_view& val,
@@ -184,6 +199,7 @@ constexpr void from_string_view_checked(std::string_view str,
                                         OnErrT&& /*err*/ = {}) {
     val = str;
 }
+
 
 #endif
 

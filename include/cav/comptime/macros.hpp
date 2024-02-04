@@ -24,7 +24,7 @@
 #endif
 
 #ifndef NDEBUG
-#define VERBOSE
+#define CAV_VERBOSE
 #endif
 
 /// @brief Activates more logs
@@ -70,28 +70,28 @@
 /// the non-used branch). So using a lambda that wraps the if constexpr we can get the check that we
 /// want.
 /// Void is returned if the request type does not exist.
-#define CAV_VOID_IF_ILLEGAL(TYPE...)            \
-    typename std::invoke_result_t<decltype([] { \
-        if constexpr (requires { TYPE; })       \
-            return wrap<TYPE>{};                \
-        else                                    \
-            return wrap<void>{};                \
+#define CAV_VOID_IF_ILLEGAL(...)                 \
+    typename std::invoke_result_t<decltype([] {  \
+        if constexpr (requires { __VA_ARGS__; }) \
+            return wrap<__VA_ARGS__>{};          \
+        else                                     \
+            return wrap<void>{};                 \
     })>::type
 
-#define CAV_FALLBK_TYPE(FALLBACK, TYPE...)         \
-    typename std::invoke_result_t<decltype([] {    \
-        if constexpr (requires { typename TYPE; }) \
-            return wrap<typename TYPE>{};          \
-        else                                       \
-            return wrap<FALLBACK>{};               \
+#define _CAV_FALLBK_TYPE(FALLBACK, ...)                   \
+    typename std::invoke_result_t<decltype([] {           \
+        if constexpr (requires { typename __VA_ARGS__; }) \
+            return wrap<typename __VA_ARGS__>{};          \
+        else                                              \
+            return wrap<FALLBACK>{};                      \
     })>::type
 
-#define CAV_FALLBK_VALUE(FALLBACK, VALUE...) \
-    [] {                                     \
-        if constexpr (requires { VALUE; })   \
-            return VALUE;                    \
-        else                                 \
-            return FALLBACK;                 \
+#define CAV_FALLBK_VALUE(FALLBACK, ...)          \
+    [] {                                         \
+        if constexpr (requires { __VA_ARGS__; }) \
+            return __VA_ARGS__;                  \
+        else                                     \
+            return FALLBACK;                     \
     }()
 
 #endif /* CAV_INCLUDE_MACROS_HPP */

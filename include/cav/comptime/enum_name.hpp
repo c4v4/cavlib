@@ -86,27 +86,25 @@ namespace detail {
     }  // namespace
 #endif
 
-    consteval bool ends_with(std::string_view str, std::string_view suffix) {
-        return str.size() >= suffix.size() &&
-               0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-    }
-
-    template <typename ET, std::underlying_type_t<ET> D>
-    struct get_enum_size {
-        static constexpr auto built_name = type_name<ET>::local_name + ")" + int_to_const_str<D>();
-        static constexpr size_t value    = [] {
-            if constexpr (ends_with(enum_name_impl<ET, D>::name, built_name))
-                return D;
-            else
-                return get_enum_size<ET, D + 1>::value;
-        }();
-    };
 }  // namespace detail
+
+template <typename ET, std::underlying_type_t<ET> D = 0>
+struct enum_size {
+    using utype                       = std::underlying_type_t<ET>;
+    static constexpr auto  built_name = type_name<ET>::local_name + ")" + int_to_const_str<D>();
+    static constexpr utype value      = [] {
+        if constexpr (detail::enum_name_impl<ET, D>::name.ends_with(
+                          static_cast<std::string_view>(built_name)))
+            return D;
+        else
+            return enum_size<ET, D + 1>::value;
+    }();
+};
 
 /// @brief Create a map from enum values to their names
 template <typename ET>
 consteval auto make_enum_name_map() {
-    constexpr size_t e_size = detail::get_enum_size<ET, 0>::value;
+    constexpr size_t e_size = enum_size<ET>::value;
     auto             res    = std::array<char const*, e_size>{};
     for_each_idx<e_size>(
         [&]<auto I>(ct<I>) { res[I] = detail::enum_name_impl<ET, I>::cs_name.data(); });
@@ -129,7 +127,7 @@ template <auto X>
 namespace detail::test {
     CAV_PASS(enum_name<TEST::A>() == enum_name(TEST::A));
     CAV_PASS(enum_name<TEST::B>() == enum_name(TEST::B));
-    CAV_PASS(enum_name<A>() == enum_name(A));
+    CAV_PASS(enum_name<A>() == enum_name(static_cast<TEST>(0)));
     CAV_PASS(enum_name<B>() == enum_name(B));
 }  // namespace detail::test
 #endif

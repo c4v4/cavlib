@@ -66,8 +66,17 @@ struct ClParser : type_map<ArTs...> {
                 fill(fmtdescr, ' ', T::descr.size() - 1, -1);
                 return "  -" + fmtflags + " : " + fmtdescr + " set to: {}\n";
             }(wrap_v<Ts>));
-            fmt::print(msg, args.value...);
+            fmt::print(msg, _wrap_enum(args.value)...);
         });
+    }
+
+private:
+    template <typename T>
+    static constexpr decl_auto _wrap_enum(T&& val) {
+        if constexpr (std::is_enum_v<no_cvr<T>>)
+            return enum_name(val);
+        else
+            return FWD(val);
     }
 };
 
@@ -93,7 +102,7 @@ namespace detail {
 /// @tparam F The first flag of the argument.
 /// @tparam Fs The other flags of the argument.
 template <typename T, value_wrap D, StaticStr Des, StaticStr F, StaticStr... Fs>
-struct CliArg {
+struct ClArg {
     using key_t      = ct<F>;
     using val_wrap_t = decltype(D);
 
@@ -130,7 +139,7 @@ struct CliArg {
 };
 
 template <value_wrap<bool> D, StaticStr Des, StaticStr F, StaticStr... Fs>
-struct CliArg<void, D, Des, F, Fs...> {
+struct ClArg<void, D, Des, F, Fs...> {
     using key_t = ct<F>;
 
     struct value_t {
@@ -155,11 +164,12 @@ struct CliArg<void, D, Des, F, Fs...> {
     }
 };
 
+
 #ifdef CAV_COMP_TESTS
 namespace {
     struct MyTestCliParser
-        : ClParser<CliArg<void, false, "Help msg", "help", "h", "h2">,
-                   CliArg<std::string, "none", "Stirng", "string", "s">> {};
+        : ClParser<ClArg<void, false, "Help msg", "help", "h", "h2">,
+                   ClArg<std::string, "none", "Stirng", "string", "s">> {};
 
     CAV_BLOCK_PASS({
         // parsing is constexpr from c++23, for now just test string and void args

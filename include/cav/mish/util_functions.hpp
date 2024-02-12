@@ -342,7 +342,7 @@ namespace {
 
 /// Simple range stuff
 
-constexpr void iota(auto& container, auto&& start, TYPEOF(start) const& step = 1) {
+constexpr void iota(auto&& container, auto&& start, TYPEOF(start) const& step = 1) {
     container[0] = FWD(start);
     for (size_t i = 1; i < container.size(); ++i)
         container[i] = container[i - 1] + step;
@@ -369,7 +369,7 @@ template <typename ContT, typename T>
     return container;
 }
 
-constexpr void fill(auto&       container,
+constexpr void fill(auto&&       container,
                     auto const& val,
                     int64_t     start = {},
                     int64_t     end   = cav::type_max<int64_t>) {

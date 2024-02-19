@@ -31,6 +31,7 @@
 #ifdef VERBOSE
 #define CAV_VERBOSE
 #else
+#undef CAV_VERBOSE
 #define CAV_VERBOSE if constexpr (false)
 #endif
 

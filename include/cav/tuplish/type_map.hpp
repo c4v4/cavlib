@@ -130,17 +130,17 @@ struct type_map : Ts... {
     }
 
     template <typename T>
-    [[nodiscard]] static consteval bool has(tag_type<T> /*k*/) {
+    [[nodiscard]] static constexpr bool has(tag_type<T> /*k*/) {
         return has_type_v<T, typename Ts::key_t...>;
     }
 
     template <value_wrap<std::size_t> K>
-    [[nodiscard]] static consteval bool has(ct<K> /*k*/) {
+    [[nodiscard]] static constexpr bool has(ct<K> /*k*/) {
         return K.value < size();
     }
 
     template <std::size_t N, value_wrap<StaticStr<N>> K>
-    [[nodiscard]] static consteval bool has(ct<K> /*k*/) {
+    [[nodiscard]] static constexpr bool has(ct<K> /*k*/) {
         [[maybe_unused]] constexpr auto tname        = static_cast<StaticStr<N>>(K);
         constexpr size_t                nexact_match = count_trues(tname == ts_name<Ts>...);
         return nexact_match == 1 ||
@@ -222,6 +222,7 @@ namespace {
     CAV_PASS(tm1.for_each([](auto x) { return x > 0; }));           // any > 0? true
     CAV_PASS(!tm1.for_each([](auto x) { return x == 0; }));         // any == 0? false
 
+    CAV_PASS(tm1["std::i"_cs] == 1);
     CAV_PASS(tm5["cav::pack<i"_cs] == 1);
     CAV_PASS(tm5["cav::pack<in"_cs] == 1);
     CAV_PASS(tm5["cav::pack<int"_cs] == 1);

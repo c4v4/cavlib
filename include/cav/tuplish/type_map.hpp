@@ -88,6 +88,7 @@ struct type_map : Ts... {
             return (FWD(fn)(std::move(Ts::value)) || ...);
         else
             (void)(FWD(fn)(std::move(Ts::value)), ...);
+        return false;
     }
 
     template <typename F>
@@ -96,6 +97,7 @@ struct type_map : Ts... {
             return (FWD(fn)(Ts::value) || ...);
         else
             (void)(FWD(fn)(Ts::value), ...);
+        return false;
     }
 
     template <typename F>
@@ -104,6 +106,7 @@ struct type_map : Ts... {
             return (FWD(fn)(Ts::value) || ...);
         else
             (void)(FWD(fn)(Ts::value), ...);
+        return false;
     }
 
     // return true if fn has been called (otherwise i was larger than size())

@@ -26,7 +26,7 @@
 #include "../comptime/mp_utils.hpp"
 #include "../comptime/syntactic_sugars.hpp"
 #include "../numeric/limits.hpp"
-#include "cav/vectors/OwnSpan.hpp"
+#include "../vectors/OwnSpan.hpp"
 
 namespace cav {
 
@@ -369,7 +369,7 @@ template <typename ContT, typename T>
     return container;
 }
 
-constexpr void fill(auto&&       container,
+constexpr void fill(auto&&      container,
                     auto const& val,
                     int64_t     start = {},
                     int64_t     end   = cav::type_max<int64_t>) {
@@ -552,6 +552,18 @@ constexpr size_t idx_of_true(auto... args) {
 
 constexpr size_t count_trues(auto... args) {
     return (static_cast<size_t>(args) + ... + 0);
+}
+
+struct IdentityFtor {
+    template <typename T>
+    T&& operator()(T&& t) const noexcept {
+        return std::forward<T>(t);
+    }
+};
+
+template <typename T2, typename T1>
+static T2 bit_cast(T1&& t1) {
+    return std::bit_cast<T2>(FWD(t1));
 }
 
 }  // namespace cav

@@ -690,6 +690,26 @@ namespace {
 }  // namespace
 #endif
 
+template <typename C>
+struct container_metadata {
+    using iterator   = decltype(std::declval<C>().begin());
+    using value_type = no_cvr<decltype(*std::declval<iterator>())>;
+    using size_type  = decltype(std::declval<C>().size());
+};
+
+template <typename T, size_t N>
+struct container_metadata<T[N]> {
+    using iterator   = T*;
+    using value_type = T;
+    using size_type  = size_t;
+};
+
+template <typename C>
+using container_iterator_t = typename container_metadata<C>::iterator;
+template <typename C>
+using container_value_type_t = typename container_metadata<C>::value_type;
+template <typename C>
+using container_size_type_t = typename container_metadata<C>::size_type;
 
 }  // namespace cav
 
